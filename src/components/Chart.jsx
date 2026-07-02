@@ -1,20 +1,33 @@
-import React, { useRef, useEffect } from "react";
-import echarts from "../echartsSetup";
+import { useEffect, useRef } from "react";
+import * as echarts from "echarts";
 
-export default function Chart({ option, height = 220 }) {
-  const el = useRef(null);
-  const inst = useRef(null);
+// Chart-wrapper: initialiseert ECharts, volgt containergrootte en
+// werkt opties bij zonder opnieuw te initialiseren.
+export default function Chart({ option, height = 200, onInit, onClick, style }) {
+  const ref = useRef(null);
+  const chartRef = useRef(null);
 
   useEffect(() => {
-    inst.current = echarts.init(el.current, "flii");
-    const ro = new ResizeObserver(() => inst.current && inst.current.resize());
-    ro.observe(el.current);
-    return () => { ro.disconnect(); inst.current.dispose(); };
+    const el = ref.current;
+    if (!el) return;
+    const c = echarts.init(el);
+    chartRef.current = c;
+    if (onInit) onInit(c);
+    const ro = new ResizeObserver(() => c.resize());
+    ro.observe(el);
+    return () => { ro.disconnect(); c.dispose(); chartRef.current = null; };
   }, []);
 
   useEffect(() => {
-    if (inst.current) inst.current.setOption(option, true);
+    if (chartRef.current && option) chartRef.current.setOption(option, { notMerge: false });
   }, [option]);
 
-  return <div ref={el} style={{ width: "100%", height }} />;
+  useEffect(() => {
+    const c = chartRef.current;
+    if (!c || !onClick) return;
+    c.on("click", onClick);
+    return () => c.off("click", onClick);
+  }, [onClick]);
+
+  return <div ref={ref} className="chartbox" style={{ height, ...style }} />;
 }
