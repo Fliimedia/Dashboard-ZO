@@ -1,11 +1,13 @@
 import { GoogleAuth } from "google-auth-library";
 
-// Flii GA4 proxy
-// Houdt het Google service-account vast, wisselt dat om naar een access token,
-// en stuurt batch-rapporten door naar de GA4 Data API.
-// De frontend praat alleen met deze functie, nooit rechtstreeks met Google.
+// Performance OS, GA4 proxy
+// Wisselt het service-account om naar een access token en haalt rapporten op
+// bij de GA4 Data API. De GA4 batchRunReports API staat maximaal 5 rapporten
+// per call toe, dus we knippen langere lijsten in stukken en plakken de
+// resultaten weer aan elkaar in dezelfde volgorde.
 
 const SCOPES = ["https://www.googleapis.com/auth/analytics.readonly"];
+const CHUNK = 5;
 
 let authClient;
 
@@ -13,12 +15,18 @@ function getAuth() {
   if (!authClient) {
     const raw = process.env.GA_SERVICE_ACCOUNT;
     if (!raw) throw new Error("GA_SERVICE_ACCOUNT env var ontbreekt");
-    authClient = new GoogleAuth({
-      credentials: JSON.parse(raw),
-      scopes: SCOPES,
-    });
+    authClient = new GoogleAuth({ credentials: JSON.parse(raw), scopes: SCOPES });
   }
   return authClient;
+}
+
+function allowedProperty(id) {
+  const list = (process.env.GA_ALLOWED_PROPERTIES || "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+  if (list.length === 0) return true;
+  return list.includes(id);
 }
 
 export default async function handler(req, res) {
@@ -33,8 +41,8 @@ export default async function handler(req, res) {
   if (req.method === "GET") {
     res.status(200).json({
       ok: true,
-      service: "flii-ga-proxy",
-      hint: "De proxy leeft. Gebruik POST met propertyId en reports om data op te halen.",
+      service: "performance-os-ga",
+      hint: "Gebruik POST met propertyId en reports om data op te halen.",
     });
     return;
   }
@@ -61,6 +69,10 @@ export default async function handler(req, res) {
       res.status(400).json({ error: "propertyId ontbreekt" });
       return;
     }
+    if (!allowedProperty(propertyId)) {
+      res.status(403).json({ error: "Property niet toegestaan" });
+      return;
+    }
     if (!Array.isArray(body.reports) || body.reports.length === 0) {
       res.status(400).json({ error: "reports ontbreekt" });
       return;
@@ -69,31 +81,35 @@ export default async function handler(req, res) {
     const token = await (await getAuth().getClient()).getAccessToken();
     const bearer = token && token.token ? token.token : token;
 
-    const url =
+    const base =
       "https://analyticsdata.googleapis.com/v1beta/properties/" +
       propertyId +
       ":batchRunReports";
 
-    const gaRes = await fetch(url, {
-      method: "POST",
-      headers: {
-        Authorization: "Bearer " + bearer,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ requests: body.reports }),
-    });
-
-    const data = await gaRes.json();
-
-    if (!gaRes.ok) {
-      const msg = data && data.error && data.error.message
-        ? data.error.message
-        : "Google Analytics fout";
-      res.status(gaRes.status).json({ error: msg, detail: data });
-      return;
+    const merged = [];
+    for (let i = 0; i < body.reports.length; i += CHUNK) {
+      const slice = body.reports.slice(i, i + CHUNK);
+      const gaRes = await fetch(base, {
+        method: "POST",
+        headers: {
+          Authorization: "Bearer " + bearer,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ requests: slice }),
+      });
+      const data = await gaRes.json();
+      if (!gaRes.ok) {
+        const msg =
+          data && data.error && data.error.message
+            ? data.error.message
+            : "Google Analytics fout";
+        res.status(gaRes.status).json({ error: msg, detail: data });
+        return;
+      }
+      (data.reports || []).forEach((r) => merged.push(r));
     }
 
-    res.status(200).json(data);
+    res.status(200).json({ reports: merged });
   } catch (e) {
     res.status(500).json({ error: e.message || "Serverfout" });
   }
