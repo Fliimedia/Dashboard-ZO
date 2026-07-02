@@ -1,29 +1,24 @@
-import * as echarts from "echarts";
+// Gedeelde ECharts-instellingen voor het lichte Flii-thema
+export const COLORS = {
+  magenta: "#E6007E",
+  magenta2: "#FF4DA1",
+  violet: "#7A3FF2",
+  deepviolet: "#3B1E5E",
+  mist: "#6E6879",
+  dim: "#9A93A8",
+};
 
-echarts.registerTheme("flii", {
-  color: ["#E6007E", "#3B1E5E", "#9B6AC9", "#C9A2E8", "#6E6879"],
-  backgroundColor: "transparent",
-  textStyle: { fontFamily: "Inter, sans-serif", color: "#141019" },
-  title: { textStyle: { color: "#141019", fontFamily: "Space Grotesk" } },
-  legend: { textStyle: { color: "#6E6879" } },
-  tooltip: {
-    backgroundColor: "#141019",
-    borderColor: "#141019",
-    textStyle: { color: "#fff", fontFamily: "IBM Plex Mono", fontSize: 11 },
-  },
-  categoryAxis: {
-    axisLine: { lineStyle: { color: "#E6E3EC" } },
-    axisTick: { show: false },
-    axisLabel: { color: "#6E6879", fontFamily: "IBM Plex Mono", fontSize: 10 },
-    splitLine: { show: false },
-  },
-  valueAxis: {
-    axisLine: { show: false },
-    axisTick: { show: false },
-    axisLabel: { color: "#6E6879", fontFamily: "IBM Plex Mono", fontSize: 10 },
-    splitLine: { lineStyle: { color: "#F0EEF4" } },
-  },
-  line: { symbol: "none", smooth: true, lineStyle: { width: 2.4 } },
-});
+export const AX = {
+  axisLine: { lineStyle: { color: "#E6E3EC" } },
+  axisTick: { show: false },
+  axisLabel: { color: "#6E6879", fontFamily: "IBM Plex Mono", fontSize: 9 },
+};
 
-export default echarts;
+export const TT = {
+  backgroundColor: "#141019",
+  borderColor: "#141019",
+  textStyle: { color: "#fff", fontFamily: "IBM Plex Mono", fontSize: 11 },
+  confine: true,
+};
+
+export const SPLIT = { lineStyle: { color: "rgba(20,16,25,.07)", type: "dashed" } };
