@@ -1,54 +1,62 @@
-import React, { useState, useMemo } from "react";
-import { Card } from "../components/ui.jsx";
-import { int, pct, dur, delta, optimizations } from "../data";
+import { useState } from "react";
+import { Card, fmtInt, fmtPctDelta } from "../components/ui.jsx";
 
-export default function Insights({ d, client, rg }) {
-  const [status, setStatus] = useState("idle");
+export default function Insights({ data }) {
+  const { kpis, dims } = data;
+  const [busy, setBusy] = useState(false);
   const [report, setReport] = useState("");
-  const [noKey, setNoKey] = useState(false);
-  const opts = useMemo(() => optimizations(d), [d]);
 
-  function facts() {
-    const top = d.channels.slice(0, 5).map((c) => c.name + ": " + int(c.sessions) + " sessies").join("; ");
-    const half = Math.floor(d.trend.length / 2), sum = (a) => a.reduce((x, y) => x + y.sessions, 0);
-    const dir = sum(d.trend.slice(half)) > sum(d.trend.slice(0, half)) ? "stijgend" : sum(d.trend.slice(half)) < sum(d.trend.slice(0, half)) ? "dalend" : "vlak";
-    return "Periode: " + rg.cur.startDate + " tot " + rg.cur.endDate + ". Sessies: " + int(d.cur.sessions) + " (vorige periode " + int(d.prev.sessions) + "). Gebruikers: " + int(d.cur.users) + ", waarvan nieuw " + int(d.cur.newUsers) + ". Paginaweergaven: " + int(d.cur.views) + ". Gemiddelde sessieduur: " + dur(d.cur.avgDur) + ". Betrokkenheid: " + pct(d.cur.engRate) + ". Bounce rate: " + pct(d.cur.bounceRate) + ". Top kanalen: " + (top || "geen") + ". Trend sessies: " + dir + ".";
-  }
+  const topCh = [...dims.kanalen].sort((a, b) => b.s - a.s)[0];
+  const weakCh = [...dims.kanalen].sort((a, b) => a.e - b.e)[0];
+  const topLp = [...dims.landingspaginas].sort((a, b) => b.c - a.c)[0];
+  const delta = fmtPctDelta(kpis.cur.s, kpis.prev.s);
 
-  async function writeReport() {
-    setStatus("loading"); setReport(""); setNoKey(false);
+  async function generate() {
+    setBusy(true); setReport("");
     try {
-      const res = await fetch("/api/report", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ facts: facts(), type: "Maandrapport", client: client.name }) });
-      const j = await res.json();
-      if (j.ok === false && j.reason === "no_key") { setNoKey(true); setStatus("done"); return; }
-      if (j.ok === false) throw new Error(j.error || "API fout");
-      setReport(j.text || ""); setStatus("done");
-    } catch (e) { setReport("Kon het rapport niet schrijven: " + (e.message || "")); setStatus("done"); }
+      const res = await fetch("/api/report", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ summary: { kpis, dims } }),
+      });
+      if (!res.ok) throw new Error("api " + res.status);
+      const out = await res.json();
+      setReport(out.report || out.text || "Geen rapport ontvangen");
+    } catch (e) {
+      setReport("Rapportgeneratie is nog niet geconfigureerd op deze omgeving (ANTHROPIC_API_KEY). De cijfers hierboven staan klaar als input.");
+    } finally { setBusy(false); }
   }
 
   return (
-    <div>
-      <Card title="Business insights">
-        <p style={{ fontSize: 14.5, lineHeight: 1.6, margin: 0 }}>
-          In deze periode {d.cur.sessions >= d.prev.sessions ? "steeg" : "daalde"} het verkeer naar {int(d.cur.sessions)} sessies
-          ({delta(d.cur.sessions, d.prev.sessions).t || "geen vergelijking"} tegenover de vorige periode).
-          Het grootste kanaal is {d.channels[0] ? d.channels[0].name : "onbekend"}.
-          De betrokkenheid ligt op {pct(d.cur.engRate)}.
+    <div className="view">
+      <Card>
+        <div className="h1 disp">Business insights</div>
+        <div className="h2">Het verhaal van deze periode</div>
+        <p style={{ fontSize: 13, lineHeight: 1.65, margin: "4px 0 0" }}>
+          Het verkeer {delta >= 0 ? "steeg" : "daalde"} {Math.abs(delta)}% naar {fmtInt(kpis.cur.s)} sessies.
+          {" "}{topCh?.n} is het sterkste kanaal, en {topLp?.n} levert de meeste conversies.
+          {" "}Aandachtspunt is {weakCh?.n}, met de laagste betrokkenheid ({weakCh?.e}%).
         </p>
       </Card>
 
-      <Card title="Optimalisatielijst" style={{ marginTop: 14 }}>
-        {opts.map((o, i) => <div className="opt" key={i}><span className="mk" /><span style={{ fontSize: 14, lineHeight: 1.5 }}>{o}</span></div>)}
+      <Card>
+        <div className="h1 disp">Optimalisatielijst</div>
+        <div className="h2">Concrete acties uit de cijfers</div>
+        <div className="opt"><span className="mk" /><span>{weakCh?.n} blijft achter in betrokkenheid ({weakCh?.e}%). Verbeter de aansluiting tussen instroom en landingspagina.</span></div>
+        <div className="opt"><span className="mk" /><span>{topLp?.n} converteert het best. Zet daar je belangrijkste call to action en test varianten.</span></div>
+        <div className="opt"><span className="mk" /><span>Conversies groeiden naar {fmtInt(kpis.cur.c)}. Verhoog het dagtarget zodra het huidige target twee weken op rij wordt gehaald.</span></div>
+        <div className="opt"><span className="mk" /><span>Controleer of alle campagnes UTM-tags voeren, zodat de campagne-tabel compleet is.</span></div>
       </Card>
 
-      <Card title="Maandrapport" style={{ marginTop: 14 }}>
-        <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: -34, marginBottom: 12 }}>
-          {report && <button className="btn ghost" onClick={() => navigator.clipboard.writeText(report)}>Kopieer</button>}
-          <button className="btn" onClick={writeReport} disabled={status === "loading"}>{status === "loading" ? "Schrijven..." : "Genereer rapport"}</button>
+      <Card>
+        <div className="hrow">
+          <div>
+            <div className="h1 disp">Maandrapport</div>
+            <div className="h2">Klantklaar rapport op basis van deze cijfers</div>
+          </div>
+          <button className="btn" onClick={generate} disabled={busy}>{busy ? "Bezig..." : "Genereer rapport"}</button>
         </div>
-        {noKey && <div className="note">Het schrijven staat uit. Zet de env var ANTHROPIC_API_KEY in Vercel om automatische rapporten aan te zetten. De cijfers en de optimalisatielijst werken sowieso.</div>}
-        {report && <div className="pre">{report}</div>}
-        {!report && !noKey && status !== "loading" && <p style={{ fontSize: 13.5, color: "var(--mist)", margin: 0 }}>Klik op genereren voor een geschreven rapport op basis van bovenstaande cijfers.</p>}
+        {report && <p style={{ fontSize: 13, lineHeight: 1.65, whiteSpace: "pre-wrap", marginTop: 10 }}>{report}</p>}
       </Card>
     </div>
   );
