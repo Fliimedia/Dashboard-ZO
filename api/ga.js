@@ -30,6 +30,14 @@ export default async function handler(req, res) {
     res.status(204).end();
     return;
   }
+  if (req.method === "GET") {
+    res.status(200).json({
+      ok: true,
+      service: "flii-ga-proxy",
+      hint: "De proxy leeft. Gebruik POST met propertyId en reports om data op te halen.",
+    });
+    return;
+  }
   if (req.method !== "POST") {
     res.status(405).json({ error: "Alleen POST" });
     return;
