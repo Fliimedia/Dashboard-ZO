@@ -5,7 +5,6 @@
 export const CLIENTS = [
   { name: "Demo", id: "283274237" },
   // { name: "BikeFair", id: "XXXXXXXXX" },
-  // { name: "TheaterThuis", id: "XXXXXXXXX" },
 ];
 
 export const RANGES = [
@@ -33,17 +32,20 @@ export function ranges(id) {
 }
 
 export function reportDefs(cur, prev) {
-  const core = [{ name: "sessions" }, { name: "totalUsers" }, { name: "newUsers" }, { name: "screenPageViews" }, { name: "averageSessionDuration" }, { name: "engagementRate" }, { name: "bounceRate" }];
+  const core = [{ name: "sessions" }, { name: "totalUsers" }, { name: "newUsers" }, { name: "screenPageViews" }, { name: "averageSessionDuration" }, { name: "engagementRate" }, { name: "bounceRate" }, { name: "engagedSessions" }];
   return [
-    { dateRanges: [cur], metrics: core },
-    { dateRanges: [prev], metrics: core },
-    { dateRanges: [cur], dimensions: [{ name: "sessionDefaultChannelGroup" }], metrics: [{ name: "sessions" }, { name: "totalUsers" }, { name: "engagementRate" }], orderBys: [{ metric: { metricName: "sessions" }, desc: true }], limit: 10 },
-    { dateRanges: [cur], dimensions: [{ name: "sessionCampaignName" }], metrics: [{ name: "sessions" }, { name: "totalUsers" }], orderBys: [{ metric: { metricName: "sessions" }, desc: true }], limit: 10 },
-    { dateRanges: [cur], dimensions: [{ name: "pagePath" }], metrics: [{ name: "screenPageViews" }, { name: "averageSessionDuration" }], orderBys: [{ metric: { metricName: "screenPageViews" }, desc: true }], limit: 10 },
-    { dateRanges: [cur], dimensions: [{ name: "deviceCategory" }], metrics: [{ name: "sessions" }], orderBys: [{ metric: { metricName: "sessions" }, desc: true }] },
-    { dateRanges: [cur], dimensions: [{ name: "date" }], metrics: [{ name: "sessions" }, { name: "totalUsers" }], orderBys: [{ dimension: { dimensionName: "date" } }] },
-    { dateRanges: [cur], dimensions: [{ name: "country" }], metrics: [{ name: "sessions" }], orderBys: [{ metric: { metricName: "sessions" }, desc: true }], limit: 8 },
-    { dateRanges: [cur], dimensions: [{ name: "dayOfWeek" }, { name: "hour" }], metrics: [{ name: "sessions" }], limit: 200 },
+    { dateRanges: [cur], metrics: core },                                                                                                                                                              // 0 totals cur
+    { dateRanges: [prev], metrics: core },                                                                                                                                                             // 1 totals prev
+    { dateRanges: [cur], dimensions: [{ name: "sessionDefaultChannelGroup" }], metrics: [{ name: "sessions" }, { name: "totalUsers" }, { name: "engagementRate" }, { name: "newUsers" }], orderBys: [{ metric: { metricName: "sessions" }, desc: true }], limit: 10 }, // 2 channels cur
+    { dateRanges: [cur], dimensions: [{ name: "sessionCampaignName" }], metrics: [{ name: "sessions" }, { name: "totalUsers" }], orderBys: [{ metric: { metricName: "sessions" }, desc: true }], limit: 10 }, // 3 campaigns
+    { dateRanges: [cur], dimensions: [{ name: "pagePath" }], metrics: [{ name: "screenPageViews" }, { name: "averageSessionDuration" }], orderBys: [{ metric: { metricName: "screenPageViews" }, desc: true }], limit: 10 }, // 4 pages
+    { dateRanges: [cur], dimensions: [{ name: "deviceCategory" }], metrics: [{ name: "sessions" }], orderBys: [{ metric: { metricName: "sessions" }, desc: true }] },  // 5 devices
+    { dateRanges: [cur], dimensions: [{ name: "date" }], metrics: [{ name: "sessions" }, { name: "totalUsers" }], orderBys: [{ dimension: { dimensionName: "date" } }] }, // 6 trend
+    { dateRanges: [cur], dimensions: [{ name: "country" }], metrics: [{ name: "sessions" }], orderBys: [{ metric: { metricName: "sessions" }, desc: true }], limit: 8 }, // 7 country
+    { dateRanges: [cur], dimensions: [{ name: "dayOfWeek" }, { name: "hour" }], metrics: [{ name: "sessions" }], limit: 200 }, // 8 heatmap
+    { dateRanges: [prev], dimensions: [{ name: "sessionDefaultChannelGroup" }], metrics: [{ name: "sessions" }], orderBys: [{ metric: { metricName: "sessions" }, desc: true }], limit: 15 }, // 9 channels prev
+    { dateRanges: [cur], dimensions: [{ name: "sessionSourceMedium" }], metrics: [{ name: "sessions" }, { name: "totalUsers" }, { name: "engagementRate" }], orderBys: [{ metric: { metricName: "sessions" }, desc: true }], limit: 10 }, // 10 source/medium
+    { dateRanges: [cur], dimensions: [{ name: "landingPage" }], metrics: [{ name: "sessions" }, { name: "engagementRate" }, { name: "bounceRate" }], orderBys: [{ metric: { metricName: "sessions" }, desc: true }], limit: 10 }, // 11 landing pages
   ];
 }
 
@@ -52,21 +54,32 @@ const rows = (r) => (r && r.rows) || [];
 
 function totalsOf(r) {
   const rr = rows(r);
-  const m = rr[0] ? rr[0].metricValues.map((x) => n(x.value)) : [0, 0, 0, 0, 0, 0, 0];
-  return { sessions: m[0], users: m[1], newUsers: m[2], views: m[3], avgDur: m[4], engRate: m[5], bounceRate: m[6] };
+  const m = rr[0] ? rr[0].metricValues.map((x) => n(x.value)) : [0, 0, 0, 0, 0, 0, 0, 0];
+  return { sessions: m[0], users: m[1], newUsers: m[2], views: m[3], avgDur: m[4], engRate: m[5], bounceRate: m[6], engaged: m[7] };
 }
 
 export function parse(data) {
   const R = (data && data.reports) || [];
   const cur = totalsOf(R[0]), prev = totalsOf(R[1]);
-  const channels = rows(R[2]).map((x) => ({ name: x.dimensionValues[0].value || "(niet ingesteld)", sessions: n(x.metricValues[0].value), users: n(x.metricValues[1].value), eng: n(x.metricValues[2].value) }));
+
+  const prevChan = {};
+  rows(R[9]).forEach((x) => { prevChan[x.dimensionValues[0].value || "(niet ingesteld)"] = n(x.metricValues[0].value); });
+
+  const channels = rows(R[2]).map((x) => {
+    const name = x.dimensionValues[0].value || "(niet ingesteld)";
+    return { name, sessions: n(x.metricValues[0].value), users: n(x.metricValues[1].value), eng: n(x.metricValues[2].value), newUsers: n(x.metricValues[3].value), prev: prevChan[name] || 0 };
+  });
+
   const campaigns = rows(R[3]).map((x) => ({ name: x.dimensionValues[0].value || "(niet ingesteld)", sessions: n(x.metricValues[0].value), users: n(x.metricValues[1].value) }));
   const pages = rows(R[4]).map((x) => ({ path: x.dimensionValues[0].value, views: n(x.metricValues[0].value), dur: n(x.metricValues[1].value) }));
   const devices = rows(R[5]).map((x) => ({ name: x.dimensionValues[0].value, sessions: n(x.metricValues[0].value) }));
   const trend = rows(R[6]).map((x) => ({ date: x.dimensionValues[0].value, sessions: n(x.metricValues[0].value), users: n(x.metricValues[1].value) }));
   const countries = rows(R[7]).map((x) => ({ name: x.dimensionValues[0].value, sessions: n(x.metricValues[0].value) }));
   const heat = rows(R[8]).map((x) => ({ dow: Number(x.dimensionValues[0].value), hour: Number(x.dimensionValues[1].value), sessions: n(x.metricValues[0].value) }));
-  return { cur, prev, channels, campaigns, pages, devices, trend, countries, heat };
+  const sourceMedium = rows(R[10]).map((x) => ({ name: x.dimensionValues[0].value || "(niet ingesteld)", sessions: n(x.metricValues[0].value), users: n(x.metricValues[1].value), eng: n(x.metricValues[2].value) }));
+  const landingPages = rows(R[11]).map((x) => ({ path: x.dimensionValues[0].value || "(niet ingesteld)", sessions: n(x.metricValues[0].value), eng: n(x.metricValues[1].value), bounce: n(x.metricValues[2].value) }));
+
+  return { cur, prev, channels, campaigns, pages, devices, trend, countries, heat, sourceMedium, landingPages };
 }
 
 // ---------- formatters ----------
@@ -89,6 +102,10 @@ export function optimizations(d) {
   const avgEng = d.channels.length ? d.channels.reduce((a, c) => a + c.eng, 0) / d.channels.length : 0;
   const weak = d.channels.filter((c) => c.sessions > 0 && c.eng < avgEng * 0.8).sort((a, b) => b.sessions - a.sessions)[0];
   if (weak) out.push("Kanaal " + weak.name + " brengt veel verkeer (" + int(weak.sessions) + " sessies) maar blijft achter in betrokkenheid (" + pct(weak.eng) + "). Kans om de instroom te verbeteren.");
+  const strong = d.channels.filter((c) => c.sessions > 0 && c.eng > avgEng * 1.2).sort((a, b) => a.sessions - b.sessions)[0];
+  if (strong && d.channels.length > 2) out.push("Kanaal " + strong.name + " heeft bovengemiddelde betrokkenheid (" + pct(strong.eng) + ") maar nog weinig volume. Kans om op te schalen.");
+  const drop = d.channels.filter((c) => c.prev > 0 && (c.sessions - c.prev) / c.prev < -0.2).sort((a, b) => b.prev - a.prev)[0];
+  if (drop) out.push("Kanaal " + drop.name + " daalde met " + delta(drop.sessions, drop.prev).t + " tegenover de vorige periode. Ga na wat er veranderde.");
   const mob = d.devices.find((x) => x.name === "mobile"), tot = d.devices.reduce((a, x) => a + x.sessions, 0) || 1;
   if (mob && mob.sessions / tot > 0.55) out.push("Ruim de helft van het verkeer is mobiel (" + pct(mob.sessions / tot) + "). Controleer of de mobiele ervaring op orde is.");
   if (d.pages[0]) out.push("Best bezochte pagina is " + d.pages[0].path + " (" + int(d.pages[0].views) + " weergaven). Benut die pagina voor je belangrijkste call to action.");
