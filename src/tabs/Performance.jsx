@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import Chart from "../components/Chart.jsx";
 import DataTable from "../components/DataTable.jsx";
 import { Card, Scorecard } from "../components/ui.jsx";
-import { int, pct, dur } from "../data";
+import { int, pct, dur, delta } from "../data";
 import { areaLine, pie, barh, heatmap } from "../charts";
 
 const SUBS = [["overzicht", "Overzicht"], ["business", "Business"], ["marketing", "Marketing"], ["web", "Web"]];
@@ -24,6 +24,12 @@ export default function Performance({ d }) {
   );
 }
 
+function DeltaCell({ cur, prev }) {
+  const dd = delta(cur, prev);
+  const color = dd.cls === "up" ? "var(--pos)" : dd.cls === "down" ? "var(--neg)" : "var(--mist)";
+  return <span className="mono" style={{ color, fontSize: 12 }}>{dd.t || "-"}</span>;
+}
+
 function Overzicht({ d }) {
   return (
     <div>
@@ -43,6 +49,12 @@ function Overzicht({ d }) {
 
 function Business({ d }) {
   const returning = Math.max(0, d.cur.users - d.cur.newUsers);
+  const prevReturning = Math.max(0, d.prev.users - d.prev.newUsers);
+  const retShare = d.cur.users ? returning / d.cur.users : 0;
+  const prevRetShare = d.prev.users ? prevReturning / d.prev.users : 0;
+  const spu = d.cur.users ? d.cur.sessions / d.cur.users : 0;
+  const prevSpu = d.prev.users ? d.prev.sessions / d.prev.users : 0;
+
   const cols = [
     { accessorKey: "name", header: "Land", cell: (c) => c.getValue() },
     { accessorKey: "sessions", header: "Sessies", meta: { num: true }, cell: (c) => int(c.getValue()) },
@@ -51,9 +63,9 @@ function Business({ d }) {
     <div>
       <div className="grid g4">
         <Scorecard label="Gebruikers" value={int(d.cur.users)} cur={d.cur.users} prev={d.prev.users} />
-        <Scorecard label="Nieuwe gebruikers" value={int(d.cur.newUsers)} cur={d.cur.newUsers} prev={d.prev.newUsers} />
-        <Scorecard label="Gem. sessieduur" value={dur(d.cur.avgDur)} cur={d.cur.avgDur} prev={d.prev.avgDur} />
-        <Scorecard label="Bounce rate" value={pct(d.cur.bounceRate)} cur={d.cur.bounceRate} prev={d.prev.bounceRate} />
+        <Scorecard label="Sessies per gebruiker" value={spu.toFixed(2).replace(".", ",")} cur={spu} prev={prevSpu} />
+        <Scorecard label="Betrokken sessies" value={int(d.cur.engaged)} cur={d.cur.engaged} prev={d.prev.engaged} />
+        <Scorecard label="Terugkeeraandeel" value={pct(retShare)} cur={retShare} prev={prevRetShare} />
       </div>
       <div className="grid g2" style={{ marginTop: 14 }}>
         <Card title="Nieuw tegen terugkerend">
@@ -68,6 +80,13 @@ function Business({ d }) {
 function Marketing({ d }) {
   const chanCols = [
     { accessorKey: "name", header: "Kanaal", cell: (c) => c.getValue() },
+    { accessorKey: "sessions", header: "Sessies", meta: { num: true }, cell: (c) => int(c.getValue()) },
+    { accessorKey: "newUsers", header: "Nieuw", meta: { num: true }, cell: (c) => int(c.getValue()) },
+    { accessorKey: "eng", header: "Betr.", meta: { num: true }, cell: (c) => pct(c.getValue()) },
+    { id: "chg", accessorFn: (r) => (r.prev ? (r.sessions - r.prev) / r.prev : 0), header: "Verschil", meta: { num: true }, cell: (c) => <DeltaCell cur={c.row.original.sessions} prev={c.row.original.prev} /> },
+  ];
+  const smCols = [
+    { accessorKey: "name", header: "Bron / medium", cell: (c) => c.getValue() },
     { accessorKey: "sessions", header: "Sessies", meta: { num: true }, cell: (c) => int(c.getValue()) },
     { accessorKey: "users", header: "Gebr.", meta: { num: true }, cell: (c) => int(c.getValue()) },
     { accessorKey: "eng", header: "Betr.", meta: { num: true }, cell: (c) => pct(c.getValue()) },
@@ -84,6 +103,9 @@ function Marketing({ d }) {
         <Card title="Kanalen"><DataTable columns={chanCols} data={d.channels} initialSort={[{ id: "sessions", desc: true }]} /></Card>
         <Card title="Verdeling verkeer"><Chart option={pie(d.channels.slice(0, 5).map((c) => ({ label: c.name, value: c.sessions })))} height={230} /></Card>
       </div>
+      <Card title="Bron en medium" style={{ marginTop: 14 }}>
+        <DataTable columns={smCols} data={d.sourceMedium} initialSort={[{ id: "sessions", desc: true }]} />
+      </Card>
       <Card title="Campagnes" style={{ marginTop: 14 }}>
         {camps.length
           ? <DataTable columns={campCols} data={d.campaigns} initialSort={[{ id: "sessions", desc: true }]} />
@@ -96,9 +118,16 @@ function Marketing({ d }) {
 function Web({ d }) {
   const tot = d.devices.reduce((a, x) => a + x.sessions, 0) || 1;
   const mob = (d.devices.find((x) => x.name === "mobile") || { sessions: 0 }).sessions;
+  const clip = (v) => <span style={{ display: "inline-block", maxWidth: 240, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", verticalAlign: "bottom" }}>{v}</span>;
   const pageCols = [
-    { accessorKey: "path", header: "Pagina", cell: (c) => <span style={{ display: "inline-block", maxWidth: 260, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", verticalAlign: "bottom" }}>{c.getValue()}</span> },
+    { accessorKey: "path", header: "Pagina", cell: (c) => clip(c.getValue()) },
     { accessorKey: "views", header: "Weergaven", meta: { num: true }, cell: (c) => int(c.getValue()) },
+  ];
+  const landCols = [
+    { accessorKey: "path", header: "Landingspagina", cell: (c) => clip(c.getValue()) },
+    { accessorKey: "sessions", header: "Sessies", meta: { num: true }, cell: (c) => int(c.getValue()) },
+    { accessorKey: "eng", header: "Betr.", meta: { num: true }, cell: (c) => pct(c.getValue()) },
+    { accessorKey: "bounce", header: "Bounce", meta: { num: true }, cell: (c) => pct(c.getValue()) },
   ];
   return (
     <div>
@@ -112,6 +141,9 @@ function Web({ d }) {
         <Card title="Top pagina's"><DataTable columns={pageCols} data={d.pages} initialSort={[{ id: "views", desc: true }]} /></Card>
         <Card title="Apparaten"><Chart option={pie(d.devices.map((x) => ({ label: x.name, value: x.sessions })))} height={230} /></Card>
       </div>
+      <Card title="Landingspagina's" style={{ marginTop: 14 }}>
+        <DataTable columns={landCols} data={d.landingPages} initialSort={[{ id: "sessions", desc: true }]} />
+      </Card>
       <Card title="Wanneer is je publiek actief" style={{ marginTop: 14 }}>
         <Chart option={heatmap(d.heat)} height={240} />
       </Card>
