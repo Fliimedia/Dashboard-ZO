@@ -1,37 +1,27 @@
-import React from "react";
-import { delta } from "../data";
-
-export function Card({ title, children, style }) {
-  return (
-    <div className="card" style={style}>
-      {title && <h3>{title}</h3>}
-      {children}
-    </div>
-  );
+export function Card({ children, className = "", ...rest }) {
+  return <div className={"card " + className} {...rest}>{children}</div>;
 }
 
-export function Scorecard({ label, value, cur, prev }) {
-  const d = delta(cur, prev);
+export function Seg({ options, value, onChange }) {
   return (
-    <div className="card sc">
-      <div className="lab">{label}</div>
-      <div className="val">{value}</div>
-      <div className={"delta " + d.cls}>{d.t ? d.t + " vs vorige periode" : "geen vergelijking"}</div>
-    </div>
-  );
-}
-
-export function Bars({ items, valKey = "sessions", fmt }) {
-  const top = Math.max(...items.map((i) => i[valKey]), 1);
-  return (
-    <div>
-      {items.map((c, i) => (
-        <div className="bar" key={i}>
-          <span className="bl">{c.name}</span>
-          <span className="bt"><span className="bf" style={{ width: (c[valKey] / top) * 100 + "%" }} /></span>
-          <span className="bv">{fmt ? fmt(c[valKey]) : Math.round(c[valKey]).toLocaleString("nl-NL")}</span>
-        </div>
+    <div className="seg">
+      {options.map((o) => (
+        <button key={o.value} className={value === o.value ? "on" : ""} onClick={() => onChange(o.value)}>
+          {o.label}
+        </button>
       ))}
     </div>
   );
+}
+
+export function Kd({ v }) {
+  const up = v >= 0;
+  return <span className={"kd " + (up ? "up" : "down")} style={{ display: "inline" }}>{up ? "+" : ""}{v}%</span>;
+}
+
+export function fmtInt(v) { return Math.round(v).toLocaleString("nl-NL"); }
+export function fmtDur(sec) { const m = Math.floor(sec / 60); return m + "m " + ("0" + Math.round(sec % 60)).slice(-2) + "s"; }
+export function fmtPctDelta(cur, prev) {
+  if (!prev) return 0;
+  return Math.round(((cur - prev) / prev) * 100);
 }
