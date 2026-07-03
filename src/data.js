@@ -214,6 +214,7 @@ export const BRAND = {
   name: "Zelfstandig Ondernemers",
   site: "zelfstandigondernemers.nl",
   logo: null,
+  tagline: "Crowdsurance voor ondernemers",
   description: "Strategie, beheer en optimalisatie van performance media",
 };
 
