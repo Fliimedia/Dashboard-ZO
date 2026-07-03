@@ -295,7 +295,7 @@ export const CLIENTS = [{ name: "Demo", id: "283274237" }];
 export const BRAND = {
   name: "Zelfstandig Ondernemers",
   site: "zelfstandigondernemers.nl",
-  logo: null,
+  logo: "/zo-logo.png",
   tagline: "Crowdsurance voor ondernemers",
   description: "Strategie, beheer en optimalisatie van performance media",
 };
