@@ -115,16 +115,19 @@ function SearchBox({ placeholder, onGo }) {
 export default function App() {
   const [tab, setTab] = useState("result");
   const [data, setData] = useState(null);
+  const [period, setPeriod] = useState("maand");
+  const [compare, setCompare] = useState("prev");
 
   useEffect(() => {
     let alive = true;
-    fetchData(CLIENTS[0].id)
+    fetchData(CLIENTS[0].id, period, compare)
       .then((d) => { if (alive) setData(d); })
-      .catch(() => { if (alive) setData(demoData()); });
+      .catch(() => { if (alive) setData(demoData(period, compare)); });
     return () => { alive = false; };
-  }, []);
+  }, [period, compare]);
 
-  const d = data || demoData();
+  const d = data || demoData(period, compare);
+  const filter = { period, setPeriod, compare, setCompare };
   const title = TABS.find((t) => t.id === tab)?.label || "";
 
   return (
@@ -155,7 +158,7 @@ export default function App() {
             <AcctIcon />
           </div>
 
-          {tab === "result" && <Result data={d} goTrends={() => setTab("trends")} />}
+          {tab === "result" && <Result data={d} filter={filter} goTrends={() => setTab("trends")} />}
           {tab === "trends" && <Trends />}
           {tab === "insights" && <Insights data={d} />}
           {tab === "forecast" && <Forecast data={d} />}
