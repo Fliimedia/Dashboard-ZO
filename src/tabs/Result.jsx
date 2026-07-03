@@ -36,6 +36,7 @@ export default function Result({ data, filter, goTrends }) {
   const METRIC = {
     s: { label: "Sessies", key: "s", target: TARGET, pct: false },
     u: { label: "Gebruikers", key: "u", target: Math.round(TARGET / 0.045 * 0.62), pct: false },
+    c: { label: "Conversies", key: "c", target: TARGET, pct: false },
     e: { label: "Betrokkenheid", key: "e", target: getTargets().engTarget || 65, pct: true },
   };
   const dayOption = useMemo(() => {
@@ -112,7 +113,7 @@ export default function Result({ data, filter, goTrends }) {
             </table>
           </div>
         </Card>
-        <FlowCard kpis={kpis} dims={dims} />
+        <FlowCard kpis={kpis} dims={dims} flow={data.flow} funnel={data.funnel} />
       </div>
 
       <div className="r4">
@@ -200,7 +201,7 @@ function KpiStrip({ kpis, metric, setMetric }) {
   const items = [
     { l: "Sessies", v: fmtInt(cur.s), d: fmtPctDelta(cur.s, prev.s), m: "s" },
     { l: "Gebruikers", v: fmtInt(cur.u), d: fmtPctDelta(cur.u, prev.u), m: "u" },
-    { l: "Conversies", v: fmtInt(cur.c), d: fmtPctDelta(cur.c, prev.c), m: null },
+    { l: "Conversies", v: fmtInt(cur.c), d: fmtPctDelta(cur.c, prev.c), m: "c" },
     { l: "Betrokkenheid", v: cur.e + "%", d: fmtPctDelta(cur.e, prev.e), m: "e" },
   ];
   return (
@@ -218,63 +219,61 @@ function KpiStrip({ kpis, metric, setMetric }) {
 }
 
 // Userflow en funnel in een kaart met toggle
-function FlowCard({ kpis, dims }) {
+function FlowCard({ kpis, dims, flow, funnel }) {
   const [mode, setMode] = useState("flow");
   const [fpick, setFpick] = useState(null);
   const s = kpis.cur.s, conv = kpis.cur.c;
-  const engaged = Math.round(s * (kpis.cur.e / 100));
   const rate = s ? (conv / s) * 100 : 0;
   const avgValue = conv ? kpis.cur.w / conv : 0;
 
-  // simpele flow: meest gevolgde paginapad van alle bezoekers
-  const home = Math.round(s * 0.6), aanbod = Math.round(s * 0.23), prijzen = Math.round(s * 0.115);
+  // Flow: meest gebruikte paginapad naar conversie, uit echte GA4-pagina's indien aanwezig
+  const flowData = flow || {
+    nodes: [{ name: "Sessies" }, { name: "/home" }, { name: "/aanbod" }, { name: "/aanvragen" }, { name: "Conversie" }, { name: "Exit" }],
+    links: [
+      { source: "Sessies", target: "/home", value: Math.round(s * 0.42) },
+      { source: "Sessies", target: "/aanbod", value: Math.round(s * 0.30) },
+      { source: "Sessies", target: "/aanvragen", value: Math.round(s * 0.18) },
+      { source: "/home", target: "Conversie", value: Math.round(conv * 0.2) },
+      { source: "/home", target: "Exit", value: Math.round(s * 0.42 - conv * 0.2) },
+      { source: "/aanbod", target: "Conversie", value: Math.round(conv * 0.3) },
+      { source: "/aanbod", target: "Exit", value: Math.round(s * 0.30 - conv * 0.3) },
+      { source: "/aanvragen", target: "Conversie", value: Math.round(conv * 0.5) },
+      { source: "/aanvragen", target: "Exit", value: Math.round(s * 0.18 - conv * 0.5) },
+    ],
+  };
   const flowOption = {
     tooltip: { ...TT, trigger: "item", formatter: (p) =>
       p.dataType === "edge" ? p.data.source + " naar " + p.data.target + ": " + fmtInt(p.data.value) : p.name },
-    series: [{ type: "sankey", left: 6, right: 70, top: 8, bottom: 8, nodeWidth: 9, nodeGap: 9, draggable: false,
+    series: [{ type: "sankey", left: 6, right: 84, top: 8, bottom: 8, nodeWidth: 9, nodeGap: 9, draggable: false,
       label: { fontFamily: "IBM Plex Mono", fontSize: 9, color: "#6E6879" },
       lineStyle: { color: "gradient", opacity: 0.28, curveness: 0.5 },
-      itemStyle: { borderWidth: 0 },
-      levels: [
-        { depth: 0, itemStyle: { color: COLORS.magenta } },
-        { depth: 1, itemStyle: { color: COLORS.magenta2 } },
-        { depth: 2, itemStyle: { color: COLORS.violet } },
-        { depth: 3, itemStyle: { color: COLORS.deepviolet } },
-      ],
-      data: [
-        { name: "Sessies" }, { name: "/home" }, { name: "/aanbod" }, { name: "/prijzen" },
-        { name: "Conversie" }, { name: "Exit" },
-      ],
-      links: [
-        { source: "Sessies", target: "/home", value: home },
-        { source: "Sessies", target: "Exit", value: s - home },
-        { source: "/home", target: "/aanbod", value: aanbod },
-        { source: "/home", target: "Exit", value: home - aanbod },
-        { source: "/aanbod", target: "/prijzen", value: prijzen },
-        { source: "/aanbod", target: "Exit", value: aanbod - prijzen },
-        { source: "/prijzen", target: "Conversie", value: conv },
-        { source: "/prijzen", target: "Exit", value: Math.max(0, prijzen - conv) },
-      ] }],
+      itemStyle: { borderWidth: 0, color: COLORS.magenta },
+      data: flowData.nodes.map((nd) => ({
+        name: nd.name,
+        itemStyle: { color: nd.name === "Conversie" ? COLORS.deepviolet : nd.name === "Exit" ? COLORS.dim : nd.name === "Sessies" ? COLORS.magenta : COLORS.violet },
+      })),
+      links: flowData.links,
+    }],
   };
 
-  const FUNNEL = [
-    { key: "sessies", name: "Sessies", value: s, color: COLORS.magenta,
-      note: "Alle sessies in de periode. Dit is de bovenkant van de funnel en de basis voor de conversieratio." },
-    { key: "betrokken", name: "Betrokken", value: engaged, color: COLORS.magenta2,
-      note: "Sessies die als betrokken tellen (langer dan 10 seconden, een conversie, of twee of meer weergaven). Hier haakt het niet-serieuze verkeer af." },
-    { key: "conversies", name: "Conversies", value: conv, color: COLORS.violet,
-      note: "Sessies die tot een aanmelding leidden. De sprong naar deze stap bepaalt de conversieratio van " + rate.toFixed(1).replace(".", ",") + "%." },
+  // Funnel: 4 stappen uit GA4-events indien beschikbaar, anders afgeleid
+  const steps = funnel || [
+    { key: "sessie", name: "Sessie", value: s, source: "sessions", note: "Alle sessies in de periode." },
+    { key: "lead", name: "Lead / brochure", value: Math.round(s * 0.18), source: "schatting", note: "Eerste blijk van interesse." },
+    { key: "aanvraag", name: "Bezoek /aanvragen", value: Math.round(s * 0.08), source: "schatting", note: "Serieuze intentie." },
+    { key: "aankoop", name: "Aankoop", value: conv, source: "keyEvents", note: "Nieuwe klanten." },
   ];
+  const COLS = [COLORS.magenta, COLORS.magenta2, COLORS.violet, COLORS.deepviolet];
+  const anyEstimate = steps.some((x) => x.source === "schatting");
   const funnelOption = {
     tooltip: { ...TT, trigger: "item", formatter: (p) => p.name + ": " + fmtInt(p.value) },
     series: [{ type: "funnel", funnelAlign: "center", orient: "horizontal",
-      left: 6, right: 6, top: 6, bottom: 20, sort: "descending", gap: 2, minSize: "30%", maxSize: "100%",
-      label: { show: true, position: "bottom", color: "#6E6879", fontFamily: "IBM Plex Mono", fontSize: 9,
+      left: 6, right: 6, top: 6, bottom: 22, sort: "descending", gap: 2, minSize: "24%", maxSize: "100%",
+      label: { show: true, position: "bottom", color: "#6E6879", fontFamily: "IBM Plex Mono", fontSize: 8.5,
         formatter: (p) => p.name + "\n" + fmtInt(p.value) },
-      labelLine: { show: false },
-      itemStyle: { borderWidth: 0 },
+      labelLine: { show: false }, itemStyle: { borderWidth: 0 },
       emphasis: { label: { color: "#141019" } },
-      data: FUNNEL.map((f) => ({ name: f.name, value: f.value, itemStyle: { color: f.color } })),
+      data: steps.map((st, i) => ({ name: st.name, value: st.value, itemStyle: { color: COLS[i % COLS.length] } })),
     }],
   };
 
@@ -287,18 +286,18 @@ function FlowCard({ kpis, dims }) {
       </div>
       {mode === "flow" ? (
         <>
-          <div className="h2">Meest gevolgde paginapad van alle bezoekers</div>
+          <div className="h2">Meest gebruikte paginapad naar conversie{flow ? "" : " (schatting)"}</div>
           <Chart option={flowOption} height={216} />
         </>
       ) : (
         <>
-          <div className="h2">Van sessie naar klant</div>
-          <Chart option={funnelOption} height={126} onClick={(p) => {
-            const f = FUNNEL.find((x) => x.name === p.name); if (f) setFpick(f);
+          <div className="h2">Van sessie naar klant, vier stappen{anyEstimate ? " (deels geschat)" : ""}</div>
+          <Chart option={funnelOption} height={132} onClick={(p) => {
+            const f = steps.find((x) => x.name === p.name); if (f) setFpick(f);
           }} />
           {fpick
-            ? <div className="fnote"><b>{fpick.name}, {fmtInt(fpick.value)}.</b> {fpick.note}</div>
-            : <div className="fnote" style={{ color: "var(--mist)" }}>Tik op een stap voor uitleg.</div>}
+            ? <div className="fnote"><b>{fpick.name}, {fmtInt(fpick.value)}.</b> {fpick.note} <span className="demobadge" style={{ marginLeft: 6 }}>{fpick.source === "event" ? "GA4-event" : fpick.source === "sessions" || fpick.source === "keyEvents" ? "GA4" : "schatting"}</span></div>
+            : <div className="fnote" style={{ color: "var(--mist)" }}>Tik op een stap voor uitleg en de databron.</div>}
           <div className="fstats">
             <div className="fstat"><div className="fl">Conversieratio</div><div className="fv disp">{rate.toFixed(1).replace(".", ",")}%</div></div>
             <div className="fstat"><div className="fl">Gem. waarde p. klant</div><div className="fv disp">&euro;{fmtInt(avgValue)}</div></div>
@@ -315,6 +314,7 @@ function FlowCard({ kpis, dims }) {
               <tr key={r.n}><td>{r.n}</td><td className="num mono">{fmtInt(r.c)}</td><td className="num mono">&euro;{fmtInt(r.w)}</td></tr>
             ))}</tbody>
           </table>
+          <div className="maphint">Product en beroep vereisen custom dimensions op het formulier en zijn nu placeholder.</div>
         </>
       )}
     </Card>
