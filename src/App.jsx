@@ -113,7 +113,7 @@ function SearchBox({ placeholder, onGo }) {
   );
 }
 
-function BrandBar({ period, setPeriod }) {
+function BrandBar() {
   const wm = wordmark(BRAND.name);
   return (
     <div className="card brandbar">
@@ -124,20 +124,8 @@ function BrandBar({ period, setPeriod }) {
         <div className="bname disp">{BRAND.name}</div>
         <div className="bsite">{BRAND.site}</div>
       </div>
-      <div className="bsub">
-        {BRAND.subcards.map((s) => (
-          <div className="subcard" key={s.l}><div className="sl">{s.l}</div><div className="sv">{s.v}</div></div>
-        ))}
-      </div>
       <div className="bspace" />
-      <div className="bperiod">
-        <Seg value={period} onChange={setPeriod} options={[
-          { value: "jaar", label: "J/Y" },
-          { value: "kwartaal", label: "K/Q" },
-          { value: "maand", label: "M/M" },
-          { value: "week", label: "W/D" },
-        ]} />
-      </div>
+      <div className="bdesc">{BRAND.description}</div>
     </div>
   );
 }
@@ -192,7 +180,7 @@ export default function App() {
             <AcctWordmark />
           </div>
 
-          <BrandBar period={period} setPeriod={setPeriod} />
+          <BrandBar />
 
           {tab === "result" && <Result data={d} filter={filter} goTrends={() => setTab("trends")} />}
           {tab === "trends" && <Trends />}
