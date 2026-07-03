@@ -59,7 +59,7 @@ export default function Trends() {
       lineStyle: { width: 3, color: COLORS.magenta },
       itemStyle: { color: COLORS.magenta },
       areaStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-        { offset: 0, color: "rgba(230,0,126,.25)" }, { offset: 1, color: "rgba(230,0,126,0)" }]) },
+        { offset: 0, color: "rgba(28,46,112,.24)" }, { offset: 1, color: "rgba(28,46,112,0)" }]) },
     }],
   }), [labels, values, kw]);
 
