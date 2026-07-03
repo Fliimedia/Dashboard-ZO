@@ -178,3 +178,29 @@ tr.click{cursor:pointer}
 .chk input{accent-color:var(--magenta)}
 .tin{width:76px;border:1px solid var(--stroke);border-radius:8px;padding:4px 7px;font-family:'IBM Plex Mono';font-size:11px;text-align:right;outline:none}
 .tin:focus{border-color:var(--magenta)}
+
+/* brandbalk bovenaan elke tab */
+.brandbar{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.blogo{width:52px;height:52px;border-radius:13px;background:var(--magenta);display:flex;align-items:center;justify-content:center;flex:none;overflow:hidden;box-shadow:0 0 18px rgba(230,0,126,.35)}
+.blogo img{width:100%;height:100%;object-fit:cover}
+.blogo .wm{font-family:'Space Grotesk';font-weight:700;font-size:19px;color:#fff;letter-spacing:.02em}
+.bmeta{min-width:0}
+.bname{font-family:'Space Grotesk';font-weight:700;font-size:16px;line-height:1.1}
+.bsite{font-family:'IBM Plex Mono';font-size:10px;color:var(--mist);margin-top:2px}
+.bsub{display:flex;gap:8px;flex-wrap:wrap;margin-left:4px}
+.subcard{background:var(--inset);border:1px solid var(--stroke);border-radius:11px;padding:7px 11px}
+.subcard .sl{font-family:'IBM Plex Mono';font-size:8.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--mist)}
+.subcard .sv{font-family:'Space Grotesk';font-weight:600;font-size:12px;margin-top:2px}
+.bspace{flex:1}
+.bperiod{flex:none}
+.acctwm{width:36px;height:36px;border-radius:10px;background:var(--magenta);color:#fff;display:flex;align-items:center;justify-content:center;flex:none;cursor:pointer;font-family:'Space Grotesk';font-weight:700;font-size:13px}
+
+/* gecentreerde toggle als sectiekop */
+.seghead{display:flex;justify-content:center;margin-bottom:10px}
+
+@media(max-width:880px){
+  .brandbar{gap:10px}
+  .bsub{width:100%;order:5}
+  .bperiod{order:4;margin-left:auto}
+  .subcard{flex:1}
+}
