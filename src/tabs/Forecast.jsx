@@ -59,18 +59,17 @@ export default function Forecast({ data }) {
     ],
   }), [days, series, kpi, targetLine]);
 
-  // trendtabel: MoM, QoQ en YoY nu uit echte periode-totalen (data.periods)
+  // trendtabel: MoM, QoQ en YoY elk uit hun eigen cur/base-venster
   const rows = useMemo(() => {
     const P = periods || {};
-    const mk = (cur, base) => (base ? Math.round(((cur - base) / base) * 100) : null);
-    const row = (label, key) => ({
-      l: label,
-      mom: mk(kpis.cur[key], P.prev && P.prev[key]),
-      qoq: mk(kpis.cur[key], P.qoq && P.qoq[key]),
-      yoy: mk(kpis.cur[key], P.yoy && P.yoy[key]),
-    });
+    const d = (cad, key) => {
+      const c = P[cad]; if (!c || !c.cur || !c.base) return null;
+      const base = c.base[key], cur = c.cur[key];
+      return base ? Math.round(((cur - base) / base) * 100) : null;
+    };
+    const row = (label, key) => ({ l: label, mom: d("mom", key), qoq: d("qoq", key), yoy: d("yoy", key) });
     return [row("Gebruikers", "u"), row("Conversies", "c"), row("Conversiewaarde", "w")];
-  }, [kpis, periods]);
+  }, [periods]);
 
   const Cell = ({ v }) => (
     <td className="num mono">
