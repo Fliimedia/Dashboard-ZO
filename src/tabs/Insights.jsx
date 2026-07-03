@@ -1,15 +1,32 @@
 import { useState } from "react";
 import { Card, fmtInt, fmtPctDelta } from "../components/ui.jsx";
 
+const CTX_KEY = "pos_report_context";
+
 export default function Insights({ data }) {
   const { kpis, dims } = data;
   const [busy, setBusy] = useState(false);
   const [report, setReport] = useState("");
+  const [ctx, setCtx] = useState(() => {
+    try { return localStorage.getItem(CTX_KEY) || ""; } catch { return ""; }
+  });
+  const [save, setSave] = useState(() => {
+    try { return !!localStorage.getItem(CTX_KEY); } catch { return false; }
+  });
 
   const topCh = [...dims.kanalen].sort((a, b) => b.s - a.s)[0];
   const weakCh = [...dims.kanalen].sort((a, b) => a.e - b.e)[0];
   const topLp = [...dims.landingspaginas].sort((a, b) => b.c - a.c)[0];
   const delta = fmtPctDelta(kpis.cur.s, kpis.prev.s);
+
+  function onCtx(v) {
+    setCtx(v);
+    try { if (save) localStorage.setItem(CTX_KEY, v); } catch {}
+  }
+  function onSave(v) {
+    setSave(v);
+    try { v ? localStorage.setItem(CTX_KEY, ctx) : localStorage.removeItem(CTX_KEY); } catch {}
+  }
 
   async function generate() {
     setBusy(true); setReport("");
@@ -17,18 +34,35 @@ export default function Insights({ data }) {
       const res = await fetch("/api/report", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ summary: { kpis, dims } }),
+        body: JSON.stringify({ summary: { kpis, dims }, context: ctx }),
       });
       if (!res.ok) throw new Error("api " + res.status);
       const out = await res.json();
       setReport(out.report || out.text || "Geen rapport ontvangen");
     } catch (e) {
-      setReport("Rapportgeneratie is nog niet geconfigureerd op deze omgeving (ANTHROPIC_API_KEY). De cijfers hierboven staan klaar als input.");
+      setReport("Rapportgeneratie is nog niet geconfigureerd op deze omgeving (ANTHROPIC_API_KEY). Je context en de cijfers staan klaar als input.");
     } finally { setBusy(false); }
   }
 
   return (
     <div className="view">
+      <Card>
+        <div className="hrow">
+          <div>
+            <div className="h1 disp">Genereer rapport</div>
+            <div className="h2">Realtime analyse op basis van de actuele cijfers</div>
+          </div>
+          <button className="btn" onClick={generate} disabled={busy}>{busy ? "Bezig..." : "Genereer rapport"}</button>
+        </div>
+        <textarea className="rinput" placeholder="Eigen input, zoals context of focuspunten voor de analyse"
+          value={ctx} onChange={(e) => onCtx(e.target.value)} />
+        <label className="chk">
+          <input type="checkbox" checked={save} onChange={(e) => onSave(e.target.checked)} />
+          Input opslaan voor volgende rapporten
+        </label>
+        {report && <p style={{ fontSize: 13, lineHeight: 1.65, whiteSpace: "pre-wrap", marginTop: 10 }}>{report}</p>}
+      </Card>
+
       <Card>
         <div className="h1 disp">Business insights</div>
         <div className="h2">Het verhaal van deze periode</div>
@@ -46,17 +80,6 @@ export default function Insights({ data }) {
         <div className="opt"><span className="mk" /><span>{topLp?.n} converteert het best. Zet daar je belangrijkste call to action en test varianten.</span></div>
         <div className="opt"><span className="mk" /><span>Conversies groeiden naar {fmtInt(kpis.cur.c)}. Verhoog het dagtarget zodra het huidige target twee weken op rij wordt gehaald.</span></div>
         <div className="opt"><span className="mk" /><span>Controleer of alle campagnes UTM-tags voeren, zodat de campagne-tabel compleet is.</span></div>
-      </Card>
-
-      <Card>
-        <div className="hrow">
-          <div>
-            <div className="h1 disp">Maandrapport</div>
-            <div className="h2">Klantklaar rapport op basis van deze cijfers</div>
-          </div>
-          <button className="btn" onClick={generate} disabled={busy}>{busy ? "Bezig..." : "Genereer rapport"}</button>
-        </div>
-        {report && <p style={{ fontSize: 13, lineHeight: 1.65, whiteSpace: "pre-wrap", marginTop: 10 }}>{report}</p>}
       </Card>
     </div>
   );
