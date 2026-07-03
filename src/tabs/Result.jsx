@@ -113,7 +113,7 @@ export default function Result({ data, filter, goTrends }) {
       </div>
 
       <div className="r4">
-        <MapCard countries={countries} />
+        <MapCard countries={countries} cities={data.cities} />
         <Card>
           <div className="h1 disp">Demografie</div>
           <div className="h2">Leeftijd en geslacht</div>
@@ -309,7 +309,7 @@ function FlowCard({ kpis, dims }) {
   );
 }
 
-function MapCard({ countries }) {
+function MapCard({ countries, cities }) {
   const [mapReady, setMapReady] = useState(null); // null=laden, true=ok, false=fout
   const [view, setView] = useState("land");
   const [hint, setHint] = useState("Tik op een stad om in te zoomen");
@@ -320,6 +320,7 @@ function MapCard({ countries }) {
     continent: { center: [10, 51], zoom: 4.4 },
     wereld: { center: [8, 20], zoom: 1.15 },
   };
+  const cityData = (cities && cities.length) ? cities : CITIES;
 
   useEffect(() => {
     let alive = true;
@@ -345,12 +346,12 @@ function MapCard({ countries }) {
       emphasis: { label: { show: false }, itemStyle: { areaColor: "rgba(230,0,126,.28)" } },
       select: { disabled: true }, regions, scaleLimit: { min: 1, max: 60 } },
     series: [{ name: "steden", type: "effectScatter", coordinateSystem: "geo",
-      data: view === "land" ? CITIES : [],
+      data: view === "land" ? cityData : [],
       symbolSize: (v) => 6 + v[2] / 220,
       rippleEffect: { scale: 2.4, brushType: "stroke" },
       itemStyle: { color: COLORS.magenta, shadowColor: "rgba(230,0,126,.6)", shadowBlur: 8 },
       label: { show: false } }],
-  }), [view, mapReady]);
+  }), [view, mapReady, cityData]);
 
   function onClick(p) {
     if (view === "land" && p.seriesType === "effectScatter" && chartRef.current) {
