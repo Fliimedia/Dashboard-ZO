@@ -32,8 +32,13 @@ export function buildReports(period = "maand", compare = "prev") {
     { dateRanges: cur, dimensions: [{ name: "landingPage" }], metrics: METRICS6, orderBys: [{ metric: { metricName: "sessions" }, desc: true }], limit: 8 },
     { dateRanges: cur, dimensions: [{ name: "country" }], metrics: [{ name: "sessions" }], orderBys: [{ metric: { metricName: "sessions" }, desc: true }], limit: 10 },
     { dateRanges: cur, dimensions: [{ name: "city" }], metrics: [{ name: "sessions" }], orderBys: [{ metric: { metricName: "sessions" }, desc: true }], limit: 8 },
-    { dateRanges: [{ startDate: ranges(period, "yoy").prev[0].startDate, endDate: ranges(period, "yoy").prev[0].endDate }], metrics: METRICS6 },
-    { dateRanges: [{ startDate: ranges(period, "prev").prev[0].startDate, endDate: ranges(period, "prev").prev[0].endDate }], metrics: METRICS6 },
+    // vaste cadans-vensters voor de Forecast-trendtabel, onafhankelijk van het periodefilter
+    { dateRanges: [{ startDate: "30daysAgo", endDate: "yesterday" }], metrics: METRICS6 },   // mom cur
+    { dateRanges: [{ startDate: "60daysAgo", endDate: "31daysAgo" }], metrics: METRICS6 },    // mom base
+    { dateRanges: [{ startDate: "90daysAgo", endDate: "yesterday" }], metrics: METRICS6 },    // qoq cur
+    { dateRanges: [{ startDate: "180daysAgo", endDate: "91daysAgo" }], metrics: METRICS6 },   // qoq base
+    { dateRanges: [{ startDate: "365daysAgo", endDate: "yesterday" }], metrics: METRICS6 },   // yoy cur
+    { dateRanges: [{ startDate: "730daysAgo", endDate: "366daysAgo" }], metrics: METRICS6 },  // yoy base
   ];
 }
 
@@ -78,13 +83,10 @@ export async function fetchData(propertyId, period = "maand", compare = "prev") 
     const nm = dim(r, 0); const co = CITY_COORDS[nm];
     return co ? { name: nm, value: [co[0], co[1], num(r, 0)] } : null;
   }).filter(Boolean);
-  // QoQ en YoY totalen voor de Forecast-trendtabel
-  const qo = reps[9]?.rows?.[0], yo = reps[8]?.rows?.[0];
-  const periods = {
-    prev: kpis.prev,
-    qoq: qo ? { u: num(qo,0), s: num(qo,1), c: num(qo,4), w: num(qo,5) } : null,
-    yoy: yo ? { u: num(yo,0), s: num(yo,1), c: num(yo,4), w: num(yo,5) } : null,
-  };
+  // Forecast-trendtabel: echte MoM, QoQ, YoY uit vaste vensters
+  const tot = (row) => row ? { u: num(row,0), s: num(row,1), c: num(row,4), w: num(row,5) } : null;
+  const cad = (ci, bi) => ({ cur: tot(reps[ci]?.rows?.[0]), base: tot(reps[bi]?.rows?.[0]) });
+  const periods = { mom: cad(8,9), qoq: cad(10,11), yoy: cad(12,13) };
   return { live: true, kpis, days, dims, countries, cities: cities.length ? cities : null, periods };
 }
 
@@ -143,9 +145,9 @@ export function demoData(period = "maand", compare = "prev") {
     ],
     cities: CITIES.map((c) => ({ name: c.name, value: [c.value[0], c.value[1], Math.round(c.value[2] * f)] })),
     periods: {
-      prev: { u: Math.round(8770 * f * yo), s: Math.round(13314 * f * yo), c: Math.round(540 * f * yo), w: Math.round(18200 * f * yo) },
-      qoq: { u: Math.round(8460 * f), s: Math.round(13120 * f), c: Math.round(556 * f), w: Math.round(18760 * f) },
-      yoy: { u: Math.round(7180 * f), s: Math.round(11040 * f), c: Math.round(486 * f), w: Math.round(16320 * f) },
+      mom: { cur: { u: 9210, s: 14912, c: 622, w: 20640 }, base: { u: 8770, s: 13314, c: 556, w: 18760 } },
+      qoq: { cur: { u: 27100, s: 43800, c: 1840, w: 60200 }, base: { u: 24800, s: 40100, c: 1690, w: 55100 } },
+      yoy: { cur: { u: 104000, s: 168000, c: 7180, w: 238000 }, base: { u: 86000, s: 139000, c: 5980, w: 196000 } },
     },
   };
 }
@@ -204,3 +206,21 @@ export const CITIES = [
 ];
 
 export const CLIENTS = [{ name: "Demo", id: "283274237" }];
+
+// Merk van de klant voor de brandbalk. logo:null gebruikt de wordmark van de initialen.
+export const BRAND = {
+  name: "Zelfstandig Ondernemers",
+  site: "zelfstandigondernemers.nl",
+  logo: null,
+  subcards: [
+    { l: "Project", v: "Performance analytics" },
+    { l: "Bron", v: "GA4 en Search" },
+    { l: "Sector", v: "Zelfstandigen, AOV" },
+  ],
+};
+
+export function wordmark(name) {
+  return (name || "")
+    .split(/\s+/).filter(Boolean)
+    .map((w) => w[0].toUpperCase()).join("").slice(0, 3);
+}
