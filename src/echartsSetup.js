@@ -1,11 +1,12 @@
 // Gedeelde ECharts-instellingen voor het lichte Flii-thema
+// ZO-huisstijl. Namen zijn historisch; waarden zijn nu diepblauw/oranje/teal.
 export const COLORS = {
-  magenta: "#E6007E",
-  magenta2: "#FF4DA1",
-  violet: "#7A3FF2",
-  deepviolet: "#3B1E5E",
-  mist: "#6E6879",
-  dim: "#9A93A8",
+  magenta: "#1C2E70",   // primair, diepblauw
+  magenta2: "#EE9E2E",  // oranje accent
+  violet: "#45B4C4",    // teal
+  deepviolet: "#14286E",// donker blauw
+  mist: "#5B6685",
+  dim: "#97A0B6",
 };
 
 export const AX = {
@@ -15,8 +16,8 @@ export const AX = {
 };
 
 export const TT = {
-  backgroundColor: "#141019",
-  borderColor: "#141019",
+  backgroundColor: "#14213D",
+  borderColor: "#14213D",
   textStyle: { color: "#fff", fontFamily: "IBM Plex Mono", fontSize: 11 },
   confine: true,
 };
