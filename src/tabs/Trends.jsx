@@ -3,7 +3,7 @@ import * as echarts from "echarts";
 import Chart from "../components/Chart.jsx";
 import { Card, Seg, fmtInt } from "../components/ui.jsx";
 import { AX, TT, SPLIT, COLORS } from "../echartsSetup.js";
-import { KEYWORDS, SUBREDDITS } from "../data.js";
+import { KEYWORDS, KEYWORDS_ESTIMATED, SUBREDDITS } from "../data.js";
 
 const MONTHS = ["Jan","Feb","Mrt","Apr","Mei","Jun","Jul","Aug","Sep","Okt","Nov","Dec"];
 const QUARTERS = ["K3 '24","K4 '24","K1 '25","K2 '25","K3 '25","K4 '25","K1 '26","K2 '26"];
@@ -68,19 +68,25 @@ export default function Trends() {
     let alive = true;
     setPosts(null);
     const subs = SUBREDDITS.map((s) => s.n.replace("r/", "")).join("+");
-    const url = "https://www.reddit.com/r/" + subs + "/top.json?limit=10&t=" + REDDIT_T[rt] + "&raw_json=1";
-    fetch("https://api.allorigins.win/raw?url=" + encodeURIComponent(url))
+    // eigen serverless endpoint eerst, publieke proxy als terugval, dan demo
+    fetch("/api/reddit?subs=" + subs + "&t=" + REDDIT_T[rt] + "&limit=10")
       .then((r) => { if (!r.ok) throw 0; return r.json(); })
-      .then((j) => {
-        if (!alive) return;
-        const list = (j?.data?.children || []).map((c) => ({
-          t: c.data.title, sub: "r/" + c.data.subreddit,
-          score: c.data.score, com: c.data.num_comments,
-          url: "https://www.reddit.com" + c.data.permalink,
-        }));
-        setPosts(list.length ? list : DEMO_POSTS);
-      })
-      .catch(() => { if (alive) setPosts(DEMO_POSTS); });
+      .then((j) => { if (!alive) return; setPosts((j.posts && j.posts.length) ? j.posts : DEMO_POSTS); })
+      .catch(() => {
+        const url = "https://www.reddit.com/r/" + subs + "/top.json?limit=10&t=" + REDDIT_T[rt] + "&raw_json=1";
+        fetch("https://api.allorigins.win/raw?url=" + encodeURIComponent(url))
+          .then((r) => { if (!r.ok) throw 0; return r.json(); })
+          .then((j) => {
+            if (!alive) return;
+            const list = (j?.data?.children || []).map((c) => ({
+              t: c.data.title, sub: "r/" + c.data.subreddit,
+              score: c.data.score, com: c.data.num_comments,
+              url: "https://www.reddit.com" + c.data.permalink,
+            }));
+            setPosts(list.length ? list : DEMO_POSTS);
+          })
+          .catch(() => { if (alive) setPosts(DEMO_POSTS); });
+      });
     return () => { alive = false; };
   }, [rt]);
 
@@ -90,7 +96,7 @@ export default function Trends() {
         <div className="hrow">
           <div>
             <div className="h1 disp">Brand keywords</div>
-            <div className="h2">Klik een keyword voor het zoekvolume, 10 kernwoorden voor zelfstandigondernemers.nl</div>
+            <div className="h2">Klik een keyword voor het zoekvolume, 10 kernwoorden voor zelfstandigondernemers.nl{KEYWORDS_ESTIMATED && <span className="demobadge" style={{ marginLeft: 8 }}>geschat</span>}</div>
           </div>
           <Seg value={period} onChange={setPeriod} options={[
             { value: "maand", label: "Maand" }, { value: "kwartaal", label: "Kwartaal" }, { value: "jaar", label: "Jaar" },
