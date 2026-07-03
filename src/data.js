@@ -30,8 +30,8 @@ export function buildReports(period = "maand", compare = "prev") {
     { dateRanges: cur, dimensions: [{ name: "sessionDefaultChannelGroup" }], metrics: METRICS6, orderBys: [{ metric: { metricName: "sessions" }, desc: true }], limit: 8 },
     { dateRanges: cur, dimensions: [{ name: "sessionCampaignName" }], metrics: METRICS6, orderBys: [{ metric: { metricName: "sessions" }, desc: true }], limit: 8 },
     { dateRanges: cur, dimensions: [{ name: "landingPage" }], metrics: METRICS6, orderBys: [{ metric: { metricName: "sessions" }, desc: true }], limit: 8 },
-    { dateRanges: cur, dimensions: [{ name: "country" }], metrics: [{ name: "sessions" }], orderBys: [{ metric: { metricName: "sessions" }, desc: true }], limit: 10 },
-    { dateRanges: cur, dimensions: [{ name: "city" }], metrics: [{ name: "sessions" }], orderBys: [{ metric: { metricName: "sessions" }, desc: true }], limit: 8 },
+    { dateRanges: cur, dimensions: [{ name: "country" }], metrics: [{ name: "sessions" }, { name: "engagementRate" }], orderBys: [{ metric: { metricName: "sessions" }, desc: true }], limit: 12 },
+    { dateRanges: cur, dimensions: [{ name: "city" }], metrics: [{ name: "sessions" }, { name: "engagementRate" }], orderBys: [{ metric: { metricName: "sessions" }, desc: true }], limit: 8 },
     // vaste cadans-vensters voor de Forecast-trendtabel, onafhankelijk van het periodefilter
     { dateRanges: [{ startDate: "30daysAgo", endDate: "yesterday" }], metrics: METRICS6 },   // mom cur
     { dateRanges: [{ startDate: "60daysAgo", endDate: "31daysAgo" }], metrics: METRICS6 },    // mom base
@@ -78,10 +78,12 @@ export async function fetchData(propertyId, period = "maand", compare = "prev") 
     campagnes: mapRows(reps[4]).filter((r) => r.n && r.n !== "(not set)"),
     landingspaginas: mapRows(reps[5]),
   };
-  const countries = (reps[6]?.rows || []).map((r) => ({ name: dim(r, 0), value: num(r, 0) }));
+  const countries = (reps[6]?.rows || [])
+    .map((r) => ({ name: dim(r, 0), value: num(r, 0), e: Math.round(num(r, 1) * 100) }))
+    .filter((c) => c.name && c.name !== "(not set)");
   const cities = (reps[7]?.rows || []).map((r) => {
     const nm = dim(r, 0); const co = CITY_COORDS[nm];
-    return co ? { name: nm, value: [co[0], co[1], num(r, 0)] } : null;
+    return co ? { name: nm, value: [co[0], co[1], num(r, 0)], e: Math.round(num(r, 1) * 100) } : null;
   }).filter(Boolean);
   // Forecast-trendtabel: echte MoM, QoQ, YoY uit vaste vensters
   const tot = (row) => row ? { u: num(row,0), s: num(row,1), c: num(row,4), w: num(row,5) } : null;
@@ -139,11 +141,11 @@ export function demoData(period = "maand", compare = "prev") {
       ],
     },
     countries: [
-      { name: "Netherlands", value: 6204 }, { name: "Germany", value: 1887 },
-      { name: "Belgium", value: 1402 }, { name: "United States", value: 912 },
-      { name: "United Kingdom", value: 688 }, { name: "France", value: 340 }, { name: "Spain", value: 210 },
+      { name: "Netherlands", value: 6204, e: 71 }, { name: "Germany", value: 1887, e: 64 },
+      { name: "Belgium", value: 1402, e: 66 }, { name: "United States", value: 912, e: 58 },
+      { name: "United Kingdom", value: 688, e: 61 }, { name: "France", value: 340, e: 55 }, { name: "Spain", value: 210, e: 52 },
     ],
-    cities: CITIES.map((c) => ({ name: c.name, value: [c.value[0], c.value[1], Math.round(c.value[2] * f)] })),
+    cities: CITIES.map((c, i) => ({ name: c.name, value: [c.value[0], c.value[1], Math.round(c.value[2] * f)], e: 60 + (i * 4) % 15 })),
     periods: {
       mom: { cur: { u: 9210, s: 14912, c: 622, w: 20640 }, base: { u: 8770, s: 13314, c: 556, w: 18760 } },
       qoq: { cur: { u: 27100, s: 43800, c: 1840, w: 60200 }, base: { u: 24800, s: 40100, c: 1690, w: 55100 } },
@@ -212,11 +214,7 @@ export const BRAND = {
   name: "Zelfstandig Ondernemers",
   site: "zelfstandigondernemers.nl",
   logo: null,
-  subcards: [
-    { l: "Project", v: "Performance analytics" },
-    { l: "Bron", v: "GA4 en Search" },
-    { l: "Sector", v: "Zelfstandigen, AOV" },
-  ],
+  description: "Strategie, beheer en optimalisatie van performance media",
 };
 
 export function wordmark(name) {
