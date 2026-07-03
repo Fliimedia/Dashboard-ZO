@@ -73,14 +73,6 @@ export default function Insights({ data }) {
         </p>
       </Card>
 
-      <Card>
-        <div className="h1 disp">Optimalisatielijst</div>
-        <div className="h2">Concrete acties uit de cijfers</div>
-        <div className="opt"><span className="mk" /><span>{weakCh?.n} blijft achter in betrokkenheid ({weakCh?.e}%). Verbeter de aansluiting tussen instroom en landingspagina.</span></div>
-        <div className="opt"><span className="mk" /><span>{topLp?.n} converteert het best. Zet daar je belangrijkste call to action en test varianten.</span></div>
-        <div className="opt"><span className="mk" /><span>Conversies groeiden naar {fmtInt(kpis.cur.c)}. Verhoog het dagtarget zodra het huidige target twee weken op rij wordt gehaald.</span></div>
-        <div className="opt"><span className="mk" /><span>Controleer of alle campagnes UTM-tags voeren, zodat de campagne-tabel compleet is.</span></div>
-      </Card>
     </div>
   );
 }
