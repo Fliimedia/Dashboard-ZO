@@ -26,11 +26,14 @@ export function buildReports(period = "maand", compare = "prev") {
   return [
     { dateRanges: cur, metrics: METRICS6 },
     { dateRanges: prev, metrics: METRICS6 },
-    { dateRanges: cur, dimensions: [{ name: "date" }], metrics: [{ name: "sessions" }, { name: "keyEvents" }, { name: "engagementRate" }], orderBys: [{ dimension: { dimensionName: "date" } }], limit: n + 5 },
+    { dateRanges: cur, dimensions: [{ name: "date" }], metrics: [{ name: "sessions" }, { name: "keyEvents" }, { name: "engagementRate" }, { name: "totalUsers" }, { name: "totalRevenue" }], orderBys: [{ dimension: { dimensionName: "date" } }], limit: n + 5 },
     { dateRanges: cur, dimensions: [{ name: "sessionDefaultChannelGroup" }], metrics: METRICS6, orderBys: [{ metric: { metricName: "sessions" }, desc: true }], limit: 8 },
     { dateRanges: cur, dimensions: [{ name: "sessionCampaignName" }], metrics: METRICS6, orderBys: [{ metric: { metricName: "sessions" }, desc: true }], limit: 8 },
     { dateRanges: cur, dimensions: [{ name: "landingPage" }], metrics: METRICS6, orderBys: [{ metric: { metricName: "sessions" }, desc: true }], limit: 8 },
     { dateRanges: cur, dimensions: [{ name: "country" }], metrics: [{ name: "sessions" }], orderBys: [{ metric: { metricName: "sessions" }, desc: true }], limit: 10 },
+    { dateRanges: cur, dimensions: [{ name: "city" }], metrics: [{ name: "sessions" }], orderBys: [{ metric: { metricName: "sessions" }, desc: true }], limit: 8 },
+    { dateRanges: [{ startDate: ranges(period, "yoy").prev[0].startDate, endDate: ranges(period, "yoy").prev[0].endDate }], metrics: METRICS6 },
+    { dateRanges: [{ startDate: ranges(period, "prev").prev[0].startDate, endDate: ranges(period, "prev").prev[0].endDate }], metrics: METRICS6 },
   ];
 }
 
@@ -63,6 +66,7 @@ export async function fetchData(propertyId, period = "maand", compare = "prev") 
   const days = (reps[2]?.rows || []).map((r) => ({
     date: dim(r, 0).slice(6, 8) + "-" + dim(r, 0).slice(4, 6),
     s: num(r, 0), c: num(r, 1), e: Math.round(num(r, 2) * 100),
+    u: num(r, 3), w: num(r, 4),
   }));
   const dims = {
     kanalen: mapRows(reps[3]),
@@ -70,7 +74,18 @@ export async function fetchData(propertyId, period = "maand", compare = "prev") 
     landingspaginas: mapRows(reps[5]),
   };
   const countries = (reps[6]?.rows || []).map((r) => ({ name: dim(r, 0), value: num(r, 0) }));
-  return { live: true, kpis, days, dims, countries };
+  const cities = (reps[7]?.rows || []).map((r) => {
+    const nm = dim(r, 0); const co = CITY_COORDS[nm];
+    return co ? { name: nm, value: [co[0], co[1], num(r, 0)] } : null;
+  }).filter(Boolean);
+  // QoQ en YoY totalen voor de Forecast-trendtabel
+  const qo = reps[9]?.rows?.[0], yo = reps[8]?.rows?.[0];
+  const periods = {
+    prev: kpis.prev,
+    qoq: qo ? { u: num(qo,0), s: num(qo,1), c: num(qo,4), w: num(qo,5) } : null,
+    yoy: yo ? { u: num(yo,0), s: num(yo,1), c: num(yo,4), w: num(yo,5) } : null,
+  };
+  return { live: true, kpis, days, dims, countries, cities: cities.length ? cities : null, periods };
 }
 
 // ---------- demo ----------
@@ -87,6 +102,7 @@ export function demoData(period = "maand", compare = "prev") {
       date: ("0" + d.getDate()).slice(-2) + "-" + ("0" + (d.getMonth() + 1)).slice(-2),
       s, c: Math.max(8, Math.round(s * 0.045 + ((i % 7 < 5) ? 4 : -5))),
       e: 56 + Math.round((s - 390) / 22),
+      u: Math.round(s * 0.62), w: Math.round(s * 0.045 * 33),
     });
   }
   const f = n / 30;
@@ -125,10 +141,18 @@ export function demoData(period = "maand", compare = "prev") {
       { name: "Belgium", value: 1402 }, { name: "United States", value: 912 },
       { name: "United Kingdom", value: 688 }, { name: "France", value: 340 }, { name: "Spain", value: 210 },
     ],
+    cities: CITIES.map((c) => ({ name: c.name, value: [c.value[0], c.value[1], Math.round(c.value[2] * f)] })),
+    periods: {
+      prev: { u: Math.round(8770 * f * yo), s: Math.round(13314 * f * yo), c: Math.round(540 * f * yo), w: Math.round(18200 * f * yo) },
+      qoq: { u: Math.round(8460 * f), s: Math.round(13120 * f), c: Math.round(556 * f), w: Math.round(18760 * f) },
+      yoy: { u: Math.round(7180 * f), s: Math.round(11040 * f), c: Math.round(486 * f), w: Math.round(16320 * f) },
+    },
   };
 }
 
-// Trends: brand keywords en subreddits voor zelfstandigondernemers.nl (demo)
+// Trends: brand keywords voor zelfstandigondernemers.nl.
+// LET OP: geschatte volumes, geen live bron. Vervang fetchKeywords() zodra Ahrefs/DataForSEO gekoppeld is.
+export const KEYWORDS_ESTIMATED = true;
 export const KEYWORDS = [
   { k: "aov zzp", v: 14800, c: 22 },
   { k: "arbeidsongeschiktheidsverzekering zzp", v: 9900, c: 18 },
@@ -162,6 +186,14 @@ export const SPLIT_BEROEP = [
   { n: "Transport", c: 74, w: 2350 },
   { n: "Overig", c: 82, w: 2380 },
 ];
+
+export const CITY_COORDS = {
+  Amsterdam:[4.9041,52.3676], Rotterdam:[4.4777,51.9244], "The Hague":[4.3007,52.0705],
+  "Den Haag":[4.3007,52.0705], Utrecht:[5.1214,52.0907], Eindhoven:[5.4697,51.4416],
+  Groningen:[6.5665,53.2194], Tilburg:[5.0913,51.5606], Almere:[5.2647,52.3508],
+  Breda:[4.7683,51.5719], Nijmegen:[5.8372,51.8126], Haarlem:[4.6462,52.3874],
+  Arnhem:[5.8987,51.9851], Amersfoort:[5.3878,52.1561], "'s-Hertogenbosch":[5.2913,51.6978],
+};
 
 export const CITIES = [
   { name: "Amsterdam", value: [4.9041, 52.3676, 2140] },
