@@ -39,6 +39,8 @@ export function buildReports(period = "maand", compare = "prev") {
     { dateRanges: [{ startDate: "180daysAgo", endDate: "91daysAgo" }], metrics: METRICS6 },   // qoq base
     { dateRanges: [{ startDate: "365daysAgo", endDate: "yesterday" }], metrics: METRICS6 },   // yoy cur
     { dateRanges: [{ startDate: "730daysAgo", endDate: "366daysAgo" }], metrics: METRICS6 },  // yoy base
+    { dateRanges: cur, dimensions: [{ name: "eventName" }], metrics: [{ name: "eventCount" }], orderBys: [{ metric: { metricName: "eventCount" }, desc: true }], limit: 25 }, // funnel-events
+    { dateRanges: cur, dimensions: [{ name: "pagePath" }], metrics: [{ name: "screenPageViews" }, { name: "keyEvents" }], orderBys: [{ metric: { metricName: "screenPageViews" }, desc: true }], limit: 12 }, // flow
   ];
 }
 
@@ -89,7 +91,63 @@ export async function fetchData(propertyId, period = "maand", compare = "prev") 
   const tot = (row) => row ? { u: num(row,0), s: num(row,1), c: num(row,4), w: num(row,5) } : null;
   const cad = (ci, bi) => ({ cur: tot(reps[ci]?.rows?.[0]), base: tot(reps[bi]?.rows?.[0]) });
   const periods = { mom: cad(8,9), qoq: cad(10,11), yoy: cad(12,13) };
-  return { live: true, kpis, days, dims, countries, cities: cities.length ? cities : null, periods };
+
+  // Funnel-events: zoek herkenbare eventnamen, val terug op afleiding
+  const events = {};
+  (reps[14]?.rows || []).forEach((r) => { events[dim(r, 0)] = num(r, 0); });
+  const pick = (names) => { for (const nm of names) if (events[nm] != null) return events[nm]; return null; };
+  const funnel = buildFunnel(kpis.cur, events, pick);
+
+  // Flow: echte paginapaden met weergaven en conversies
+  const pages = (reps[15]?.rows || []).map((r) => ({ p: dim(r, 0), views: num(r, 0), conv: num(r, 1) }));
+  const flow = buildFlow(kpis.cur, pages);
+
+  return { live: true, kpis, days, dims, countries, cities: cities.length ? cities : null, periods, funnel, flow, eventsFound: Object.keys(events).length > 0 };
+}
+
+// Bouw een 4-staps funnel uit GA4-events, met afgeleide terugval per stap.
+// GA4 heeft geen kant-en-klare funnel; we mappen op gangbare eventnamen.
+export function buildFunnel(cur, events, pick) {
+  const sessions = cur.s || 0;
+  const lead = pick(["generate_lead", "brochure_download", "file_download", "download"]);
+  const aanvraag = pick(["begin_checkout", "form_start", "aanvraag_start", "view_item"]);
+  const aankoop = pick(["purchase", "aanvraag_afgerond", "submit_application"]) ?? cur.c;
+  const steps = [
+    { key: "sessie", name: "Sessie", value: sessions, source: "sessions",
+      note: "Alle sessies in de periode. De bovenkant van de funnel." },
+    { key: "lead", name: "Lead / brochure", value: lead != null ? lead : Math.round(sessions * 0.18), source: lead != null ? "event" : "schatting",
+      note: "Bezoekers die een brochure downloaden of hun gegevens achterlaten. Eerste blijk van interesse." },
+    { key: "aanvraag", name: "Bezoek /aanvragen", value: aanvraag != null ? aanvraag : Math.round(sessions * 0.08), source: aanvraag != null ? "event" : "schatting",
+      note: "Bezoekers die de aanvraagpagina openen of het formulier starten. Serieuze intentie." },
+    { key: "aankoop", name: "Aankoop", value: aankoop != null ? aankoop : Math.round(sessions * 0.04), source: aankoop != null ? "event" : "schatting",
+      note: "Afgeronde aanvragen, oftewel nieuwe klanten." },
+  ];
+  return steps;
+}
+
+// Bouw de flow uit echte paginapaden: landing naar meest bezochte vervolgpagina naar conversie.
+export function buildFlow(cur, pages) {
+  if (!pages || !pages.length) return null;
+  const norm = (p) => (p === "/" ? "/home" : p.split("?")[0]);
+  const top = pages.slice(0, 4).map((x) => ({ p: norm(x.p), views: x.views, conv: x.conv }));
+  const totalViews = top.reduce((a, b) => a + b.views, 0) || 1;
+  const sessions = cur.s || totalViews;
+  const conv = cur.c || 0;
+  const nodes = [{ name: "Sessies" }];
+  const links = [];
+  top.forEach((pg) => {
+    if (!nodes.find((n) => n.name === pg.p)) nodes.push({ name: pg.p });
+    links.push({ source: "Sessies", target: pg.p, value: Math.round(sessions * (pg.views / totalViews)) });
+  });
+  nodes.push({ name: "Conversie" }, { name: "Exit" });
+  const convTotal = top.reduce((a, b) => a + b.conv, 0) || 1;
+  top.forEach((pg) => {
+    const pgConv = Math.round(conv * (pg.conv / convTotal));
+    const pgSessions = Math.round(sessions * (pg.views / totalViews));
+    links.push({ source: pg.p, target: "Conversie", value: Math.max(0, pgConv) });
+    links.push({ source: pg.p, target: "Exit", value: Math.max(0, pgSessions - pgConv) });
+  });
+  return { nodes, links };
 }
 
 // ---------- demo ----------
@@ -151,6 +209,30 @@ export function demoData(period = "maand", compare = "prev") {
       qoq: { cur: { u: 27100, s: 43800, c: 1840, w: 60200 }, base: { u: 24800, s: 40100, c: 1690, w: 55100 } },
       yoy: { cur: { u: 104000, s: 168000, c: 7180, w: 238000 }, base: { u: 86000, s: 139000, c: 5980, w: 196000 } },
     },
+    funnel: [
+      { key: "sessie", name: "Sessie", value: Math.round(14912 * f), source: "sessions", note: "Alle sessies in de periode. De bovenkant van de funnel." },
+      { key: "lead", name: "Lead / brochure", value: Math.round(2680 * f), source: "schatting", note: "Bezoekers die een brochure downloaden of hun gegevens achterlaten. Eerste blijk van interesse." },
+      { key: "aanvraag", name: "Bezoek /aanvragen", value: Math.round(1190 * f), source: "schatting", note: "Bezoekers die de aanvraagpagina openen of het formulier starten. Serieuze intentie." },
+      { key: "aankoop", name: "Aankoop", value: Math.round(622 * f), source: "schatting", note: "Afgeronde aanvragen, oftewel nieuwe klanten." },
+    ],
+    flow: {
+      nodes: [{ name: "Sessies" }, { name: "/home" }, { name: "/aanbod" }, { name: "/aanvragen" }, { name: "/broodfonds-vs-aov" }, { name: "Conversie" }, { name: "Exit" }],
+      links: [
+        { source: "Sessies", target: "/home", value: Math.round(6400 * f) },
+        { source: "Sessies", target: "/aanbod", value: Math.round(4200 * f) },
+        { source: "Sessies", target: "/aanvragen", value: Math.round(2600 * f) },
+        { source: "Sessies", target: "/broodfonds-vs-aov", value: Math.round(1700 * f) },
+        { source: "/home", target: "Conversie", value: Math.round(120 * f) },
+        { source: "/home", target: "Exit", value: Math.round(6280 * f) },
+        { source: "/aanbod", target: "Conversie", value: Math.round(180 * f) },
+        { source: "/aanbod", target: "Exit", value: Math.round(4020 * f) },
+        { source: "/aanvragen", target: "Conversie", value: Math.round(280 * f) },
+        { source: "/aanvragen", target: "Exit", value: Math.round(2320 * f) },
+        { source: "/broodfonds-vs-aov", target: "Conversie", value: Math.round(42 * f) },
+        { source: "/broodfonds-vs-aov", target: "Exit", value: Math.round(1658 * f) },
+      ],
+    },
+    eventsFound: false,
   };
 }
 
