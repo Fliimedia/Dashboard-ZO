@@ -14,6 +14,7 @@ export default function Result({ data, filter, goTrends }) {
   const { kpis, days, dims, countries } = data;
   const TARGET = getTargets().dailyConv;
   const [dimKey, setDimKey] = useState("kanalen");
+  const [metric, setMetric] = useState("s"); // s=sessies, u=gebruikers, e=engagement
   const tableRef = useRef(null);
   const cmp = COMPARE_LABEL[filter.compare];
 
@@ -31,47 +32,57 @@ export default function Result({ data, filter, goTrends }) {
     setTimeout(() => tableRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
   }
 
-  // dagelijkse grafiek
-  const dayOption = useMemo(() => ({
-    grid: { left: 34, right: 34, top: 12, bottom: 22 },
-    tooltip: { ...TT, trigger: "axis", formatter: (p) => {
-      const i = p[0].dataIndex, r = days[i];
-      return r.date + "<br/>Sessies: " + fmtInt(r.s) + "<br/>Aanmeldingen: " + fmtInt(r.c) + " (target " + TARGET + ")<br/>Betrokkenheid: " + r.e + "%";
-    }},
-    xAxis: { ...AX, type: "category", data: days.map((d) => d.date), boundaryGap: false,
-      axisLabel: { ...AX.axisLabel, interval: Math.max(1, Math.floor(days.length / 7)) } },
-    yAxis: [
-      { ...AX, type: "value", splitLine: SPLIT },
-      { ...AX, type: "value", splitLine: { show: false }, max: Math.max(60, TARGET * 2) },
-    ],
-    series: [
-      { name: "Sessies", type: "line", data: days.map((d) => d.s), smooth: true, showSymbol: false,
-        lineStyle: { width: 3, color: COLORS.magenta }, itemStyle: { color: COLORS.magenta },
-        areaStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-          { offset: 0, color: "rgba(230,0,126,.30)" }, { offset: 1, color: "rgba(230,0,126,0)" }]) } },
-      { name: "Aanmeldingen", type: "bar", yAxisIndex: 1, data: days.map((d) => d.c), barWidth: 5,
-        itemStyle: { color: "rgba(122,63,242,.55)", borderRadius: [3, 3, 0, 0] } },
-      { name: "Target", type: "line", yAxisIndex: 1, data: days.map(() => TARGET),
-        showSymbol: false, lineStyle: { width: 1.6, type: "dashed", color: COLORS.deepviolet }, itemStyle: { color: COLORS.deepviolet } },
-    ],
-  }), [days, TARGET]);
+  // dagelijkse grafiek, reageert op de gekozen scorecard-metric
+  const METRIC = {
+    s: { label: "Sessies", key: "s", target: TARGET, pct: false },
+    u: { label: "Gebruikers", key: "u", target: Math.round(TARGET / 0.045 * 0.62), pct: false },
+    e: { label: "Betrokkenheid", key: "e", target: getTargets().engTarget || 65, pct: true },
+  };
+  const dayOption = useMemo(() => {
+    const m = METRIC[metric];
+    const vals = days.map((d) => d[m.key] ?? 0);
+    const line = new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+      { offset: 0, color: "rgba(230,0,126,.30)" }, { offset: 1, color: "rgba(230,0,126,0)" }]);
+    return {
+      grid: { left: 40, right: 12, top: 12, bottom: 22 },
+      tooltip: { ...TT, trigger: "axis", formatter: (p) => {
+        const i = p[0].dataIndex, r = days[i];
+        return r.date + "<br/>" + m.label + ": " + fmtInt(vals[i]) + (m.pct ? "%" : "") +
+          "<br/>Target: " + fmtInt(m.target) + (m.pct ? "%" : "");
+      }},
+      xAxis: { ...AX, type: "category", data: days.map((d) => d.date), boundaryGap: false,
+        axisLabel: { ...AX.axisLabel, interval: Math.max(1, Math.floor(days.length / 7)) } },
+      yAxis: { ...AX, type: "value", splitLine: SPLIT, max: m.pct ? 100 : null },
+      series: [
+        { name: m.label, type: "line", data: vals, smooth: true, showSymbol: false,
+          lineStyle: { width: 3, color: COLORS.magenta }, itemStyle: { color: COLORS.magenta }, areaStyle: { color: line } },
+        { name: "Target", type: "line", data: days.map(() => m.target),
+          showSymbol: false, lineStyle: { width: 1.6, type: "dashed", color: COLORS.deepviolet }, itemStyle: { color: COLORS.deepviolet } },
+      ],
+    };
+  }, [days, TARGET, metric]);
 
   return (
     <div className="view">
-      <div className="hrow" style={{ justifyContent: "flex-end" }}>
+      <AISummary s={summary} kpis={kpis} jumpTo={jumpTo} goTrends={goTrends} />
+
+      <div className="ctrlrow">
+        <Seg value={filter.period} onChange={filter.setPeriod} options={[
+          { value: "jaar", label: "J" }, { value: "kwartaal", label: "K" },
+          { value: "maand", label: "M" }, { value: "week", label: "D" },
+        ]} />
         <Seg value={filter.compare} onChange={filter.setCompare} options={[
           { value: "prev", label: "Vs vorige periode" }, { value: "yoy", label: "Vs vorig jaar" },
         ]} />
       </div>
-      <AISummary s={summary} kpis={kpis} jumpTo={jumpTo} goTrends={goTrends} />
 
       <Card>
-        <div className="h1 disp">Sessies en conversies per dag</div>
+        <div className="h1 disp">{METRIC[metric].label} per dag</div>
         <div className="h2"><b>{fmtPctDelta(kpis.cur.s, kpis.prev.s) >= 0 ? "+" : ""}{fmtPctDelta(kpis.cur.s, kpis.prev.s)}%</b> sessies tegenover {cmp}</div>
         <Chart option={dayOption} height={216} />
       </Card>
 
-      <KpiStrip kpis={kpis} />
+      <KpiStrip kpis={kpis} metric={metric} setMetric={setMetric} />
 
       <div className="r3">
         <Card>
@@ -184,18 +195,19 @@ function AISummary({ s, kpis, jumpTo, goTrends }) {
   );
 }
 
-function KpiStrip({ kpis }) {
+function KpiStrip({ kpis, metric, setMetric }) {
   const { cur, prev } = kpis;
   const items = [
-    { l: "Sessies", v: fmtInt(cur.s), d: fmtPctDelta(cur.s, prev.s) },
-    { l: "Gebruikers", v: fmtInt(cur.u), d: fmtPctDelta(cur.u, prev.u) },
-    { l: "Conversies", v: fmtInt(cur.c), d: fmtPctDelta(cur.c, prev.c) },
-    { l: "Betrokkenheid", v: cur.e + "%", d: fmtPctDelta(cur.e, prev.e) },
+    { l: "Sessies", v: fmtInt(cur.s), d: fmtPctDelta(cur.s, prev.s), m: "s" },
+    { l: "Gebruikers", v: fmtInt(cur.u), d: fmtPctDelta(cur.u, prev.u), m: "u" },
+    { l: "Conversies", v: fmtInt(cur.c), d: fmtPctDelta(cur.c, prev.c), m: null },
+    { l: "Betrokkenheid", v: cur.e + "%", d: fmtPctDelta(cur.e, prev.e), m: "e" },
   ];
   return (
     <Card className="kpis">
       {items.map((k) => (
-        <div className="kpi" key={k.l}>
+        <div className={"kpi" + (k.m ? " kclick" : "") + (k.m && k.m === metric ? " kon" : "")}
+          key={k.l} onClick={() => k.m && setMetric(k.m)}>
           <div className="kl">{k.l}</div>
           <div className="kv disp">{k.v}</div>
           <span className={"kd " + (k.d >= 0 ? "up" : "down")}>{k.d >= 0 ? "+" : ""}{k.d}%</span>
@@ -208,6 +220,7 @@ function KpiStrip({ kpis }) {
 // Userflow en funnel in een kaart met toggle
 function FlowCard({ kpis, dims }) {
   const [mode, setMode] = useState("flow");
+  const [fpick, setFpick] = useState(null);
   const s = kpis.cur.s, conv = kpis.cur.c;
   const engaged = Math.round(s * (kpis.cur.e / 100));
   const rate = s ? (conv / s) * 100 : 0;
@@ -244,18 +257,25 @@ function FlowCard({ kpis, dims }) {
       ] }],
   };
 
+  const FUNNEL = [
+    { key: "sessies", name: "Sessies", value: s, color: COLORS.magenta,
+      note: "Alle sessies in de periode. Dit is de bovenkant van de funnel en de basis voor de conversieratio." },
+    { key: "betrokken", name: "Betrokken", value: engaged, color: COLORS.magenta2,
+      note: "Sessies die als betrokken tellen (langer dan 10 seconden, een conversie, of twee of meer weergaven). Hier haakt het niet-serieuze verkeer af." },
+    { key: "conversies", name: "Conversies", value: conv, color: COLORS.violet,
+      note: "Sessies die tot een aanmelding leidden. De sprong naar deze stap bepaalt de conversieratio van " + rate.toFixed(1).replace(".", ",") + "%." },
+  ];
   const funnelOption = {
     tooltip: { ...TT, trigger: "item", formatter: (p) => p.name + ": " + fmtInt(p.value) },
-    series: [{ type: "funnel", left: 6, right: 6, top: 4, bottom: 4, sort: "descending", gap: 3,
-      minSize: "18%",
-      label: { show: true, position: "inside", color: "#fff", fontFamily: "IBM Plex Mono", fontSize: 9,
-        formatter: (p) => p.name },
+    series: [{ type: "funnel", funnelAlign: "center", orient: "horizontal",
+      left: 6, right: 6, top: 6, bottom: 20, sort: "descending", gap: 2, minSize: "30%", maxSize: "100%",
+      label: { show: true, position: "bottom", color: "#6E6879", fontFamily: "IBM Plex Mono", fontSize: 9,
+        formatter: (p) => p.name + "\n" + fmtInt(p.value) },
+      labelLine: { show: false },
       itemStyle: { borderWidth: 0 },
-      data: [
-        { name: "Sessies " + fmtInt(s), value: s, itemStyle: { color: COLORS.magenta } },
-        { name: "Betrokken " + fmtInt(engaged), value: engaged, itemStyle: { color: COLORS.violet } },
-        { name: "Conversies " + fmtInt(conv), value: conv, itemStyle: { color: COLORS.deepviolet } },
-      ] }],
+      emphasis: { label: { color: "#141019" } },
+      data: FUNNEL.map((f) => ({ name: f.name, value: f.value, itemStyle: { color: f.color } })),
+    }],
   };
 
   return (
@@ -273,22 +293,23 @@ function FlowCard({ kpis, dims }) {
       ) : (
         <>
           <div className="h2">Van sessie naar klant</div>
-          <Chart option={funnelOption} height={118} />
+          <Chart option={funnelOption} height={126} onClick={(p) => {
+            const f = FUNNEL.find((x) => x.name === p.name); if (f) setFpick(f);
+          }} />
+          {fpick
+            ? <div className="fnote"><b>{fpick.name}, {fmtInt(fpick.value)}.</b> {fpick.note}</div>
+            : <div className="fnote" style={{ color: "var(--mist)" }}>Tik op een stap voor uitleg.</div>}
           <div className="fstats">
-            <div className="fstat"><div className="fl">Sessies</div><div className="fv disp">{fmtInt(s)}</div></div>
-            <div className="fstat"><div className="fl">Conversies</div><div className="fv disp">{fmtInt(conv)}</div></div>
             <div className="fstat"><div className="fl">Conversieratio</div><div className="fv disp">{rate.toFixed(1).replace(".", ",")}%</div></div>
             <div className="fstat"><div className="fl">Gem. waarde p. klant</div><div className="fv disp">&euro;{fmtInt(avgValue)}</div></div>
           </div>
-          <div className="splith">Split per product</div>
-          <table className="compact">
+          <table className="compact" style={{ marginTop: 10 }}>
             <thead><tr><th>Product</th><th className="num">Conv.</th><th className="num">Waarde</th></tr></thead>
             <tbody>{SPLIT_PRODUCT.map((r) => (
               <tr key={r.n}><td>{r.n}</td><td className="num mono">{fmtInt(r.c)}</td><td className="num mono">&euro;{fmtInt(r.w)}</td></tr>
             ))}</tbody>
           </table>
-          <div className="splith">Split per beroep</div>
-          <table className="compact">
+          <table className="compact" style={{ marginTop: 10 }}>
             <thead><tr><th>Beroep</th><th className="num">Conv.</th><th className="num">Waarde</th></tr></thead>
             <tbody>{SPLIT_BEROEP.map((r) => (
               <tr key={r.n}><td>{r.n}</td><td className="num mono">{fmtInt(r.c)}</td><td className="num mono">&euro;{fmtInt(r.w)}</td></tr>
@@ -330,8 +351,15 @@ function MapCard({ countries, cities }) {
   }));
 
   const option = useMemo(() => ({
-    tooltip: { ...TT, trigger: "item", formatter: (p) =>
-      p.seriesType === "effectScatter" ? p.name + ": " + fmtInt(p.value[2]) + " sessies" : p.name },
+    tooltip: { ...TT, trigger: "item", formatter: (p) => {
+      if (p.seriesType === "effectScatter") {
+        const cy = cityData.find((c) => c.name === p.name);
+        return p.name + "<br/>Sessies: " + fmtInt(p.value[2]) + (cy && cy.e != null ? "<br/>Betrokkenheid: " + cy.e + "%" : "");
+      }
+      const co = countries.find((c) => c.name === p.name);
+      if (!co) return p.name;
+      return p.name + "<br/>Sessies: " + fmtInt(co.value) + (co.e != null ? "<br/>Betrokkenheid: " + co.e + "%" : "");
+    } },
     geo: { map: "world", roam: true, center: VIEWS[view].center, zoom: VIEWS[view].zoom,
       itemStyle: { areaColor: "rgba(20,16,25,.05)", borderColor: "rgba(20,16,25,.16)", borderWidth: 0.5 },
       emphasis: { label: { show: false }, itemStyle: { areaColor: "rgba(230,0,126,.28)" } },
@@ -366,11 +394,13 @@ function MapCard({ countries, cities }) {
         <Chart option={option} height={252} onInit={(c) => { chartRef.current = c; }} onClick={onClick} />
       )}
       {view === "land" && mapReady && <div className="maphint">{hint}</div>}
-      <div className="maplist">
-        {countries.slice(0, 5).map((c) => (
-          <div className="mstat" key={c.name}>{c.name}<b>{fmtInt(c.value)}</b></div>
-        ))}
-      </div>
+      {mapReady === false && (
+        <div className="maplist">
+          {countries.slice(0, 5).map((c) => (
+            <div className="mstat" key={c.name}>{c.name}<b>{fmtInt(c.value)}</b></div>
+          ))}
+        </div>
+      )}
     </Card>
   );
 }
