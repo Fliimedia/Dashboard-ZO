@@ -127,7 +127,8 @@ function BrandBar() {
         {BRAND.logo ? <img src={BRAND.logo} alt={BRAND.name} /> : <span className="wm">{wm}</span>}
       </div>
       <div className="bmeta">
-        <div className="bname disp">{BRAND.name}<span className="btag">&bull; {BRAND.tagline}</span></div>
+        <div className="bname disp">{BRAND.name}</div>
+        <div className="btag">{BRAND.tagline}</div>
         <div className="bsite">{BRAND.site}</div>
       </div>
       <div className="bspace" />
