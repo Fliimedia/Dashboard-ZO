@@ -123,7 +123,7 @@ function BrandBar() {
   const wm = wordmark(BRAND.name);
   return (
     <div className="card brandbar">
-      <div className="blogo">
+      <div className={"blogo" + (BRAND.logo ? "" : " wmark")}>
         {BRAND.logo ? <img src={BRAND.logo} alt={BRAND.name} /> : <span className="wm">{wm}</span>}
       </div>
       <div className="bmeta">
@@ -138,7 +138,7 @@ function BrandBar() {
 }
 
 function AcctWordmark() {
-  return <div className="acctwm">{wordmark(BRAND.name)}</div>;
+  return <div className="acctwm">{BRAND.logo ? <img src={BRAND.logo} alt={BRAND.name} /> : wordmark(BRAND.name)}</div>;
 }
 
 export default function App() {
