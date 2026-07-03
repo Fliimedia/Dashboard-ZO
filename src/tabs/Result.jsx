@@ -4,13 +4,13 @@ import Chart from "../components/Chart.jsx";
 import { Card, Seg, fmtInt, fmtDur, fmtPctDelta } from "../components/ui.jsx";
 import { AX, TT, SPLIT, COLORS } from "../echartsSetup.js";
 import { KEYWORDS, SPLIT_PRODUCT, SPLIT_BEROEP, CITIES } from "../data.js";
-
-const TARGET = 25;
+import { getTargets } from "../targets.js";
 
 const DIM_LABELS = { kanalen: "Kanalen", campagnes: "Campagnes", landingspaginas: "Landingspagina's" };
 
 export default function Result({ data, goTrends }) {
   const { kpis, days, dims, countries } = data;
+  const TARGET = getTargets().dailyConv;
   const [dimKey, setDimKey] = useState("kanalen");
   const tableRef = useRef(null);
 
@@ -43,15 +43,15 @@ export default function Result({ data, goTrends }) {
     ],
     series: [
       { name: "Sessies", type: "line", data: days.map((d) => d.s), smooth: true, showSymbol: false,
-        lineStyle: { width: 3, color: COLORS.magenta },
+        lineStyle: { width: 3, color: COLORS.magenta }, itemStyle: { color: COLORS.magenta },
         areaStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
           { offset: 0, color: "rgba(230,0,126,.30)" }, { offset: 1, color: "rgba(230,0,126,0)" }]) } },
       { name: "Aanmeldingen", type: "bar", yAxisIndex: 1, data: days.map((d) => d.c), barWidth: 5,
         itemStyle: { color: "rgba(122,63,242,.55)", borderRadius: [3, 3, 0, 0] } },
       { name: "Target", type: "line", yAxisIndex: 1, data: days.map(() => TARGET),
-        showSymbol: false, lineStyle: { width: 1.6, type: "dashed", color: COLORS.deepviolet } },
+        showSymbol: false, lineStyle: { width: 1.6, type: "dashed", color: COLORS.deepviolet }, itemStyle: { color: COLORS.deepviolet } },
     ],
-  }), [days]);
+  }), [days, TARGET]);
 
   return (
     <div className="view">
