@@ -8,11 +8,14 @@ import { getTargets } from "../targets.js";
 
 const DIM_LABELS = { kanalen: "Kanalen", campagnes: "Campagnes", landingspaginas: "Landingspagina's" };
 
-export default function Result({ data, goTrends }) {
+const COMPARE_LABEL = { prev: "vorige periode", yoy: "vorig jaar" };
+
+export default function Result({ data, filter, goTrends }) {
   const { kpis, days, dims, countries } = data;
   const TARGET = getTargets().dailyConv;
   const [dimKey, setDimKey] = useState("kanalen");
   const tableRef = useRef(null);
+  const cmp = COMPARE_LABEL[filter.compare];
 
   // AI Summary: hoogtepunten uit de data
   const summary = useMemo(() => {
@@ -55,11 +58,20 @@ export default function Result({ data, goTrends }) {
 
   return (
     <div className="view">
+      <div className="hrow">
+        <Seg value={filter.period} onChange={filter.setPeriod} options={[
+          { value: "jaar", label: "Jaar" }, { value: "kwartaal", label: "Kwartaal" },
+          { value: "maand", label: "Maand" }, { value: "week", label: "Week" },
+        ]} />
+        <Seg value={filter.compare} onChange={filter.setCompare} options={[
+          { value: "prev", label: "Vs vorige periode" }, { value: "yoy", label: "Vs vorig jaar" },
+        ]} />
+      </div>
       <AISummary s={summary} kpis={kpis} jumpTo={jumpTo} goTrends={goTrends} />
 
       <Card>
         <div className="h1 disp">Sessies en conversies per dag</div>
-        <div className="h2"><b>{fmtPctDelta(kpis.cur.s, kpis.prev.s) >= 0 ? "+" : ""}{fmtPctDelta(kpis.cur.s, kpis.prev.s)}%</b> sessies tegenover vorige periode</div>
+        <div className="h2"><b>{fmtPctDelta(kpis.cur.s, kpis.prev.s) >= 0 ? "+" : ""}{fmtPctDelta(kpis.cur.s, kpis.prev.s)}%</b> sessies tegenover {cmp}</div>
         <Chart option={dayOption} height={216} />
       </Card>
 
