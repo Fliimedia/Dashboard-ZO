@@ -12,7 +12,7 @@ const KPIS = [
 ];
 
 export default function Forecast({ data }) {
-  const { kpis, days } = data;
+  const { kpis, days, periods } = data;
   const [kpi, setKpi] = useState("conv");
   const [t, setT] = useState(getTargets());
 
@@ -21,11 +21,11 @@ export default function Forecast({ data }) {
 
   // dagreeksen per KPI: gebruikers en waarde afgeleid van sessies (demo of live-benadering)
   const series = useMemo(() => {
-    const s = days.map((d) => d.s);
     const conv = days.map((d) => d.c);
-    const users = s.map((v) => Math.round(v * (kpis.cur.u / Math.max(1, kpis.cur.s))));
+    // echte dagwaarden indien aanwezig, anders afgeleid van sessies
+    const users = days.map((d) => d.u != null ? d.u : Math.round(d.s * (kpis.cur.u / Math.max(1, kpis.cur.s))));
     const avgVal = kpis.cur.c ? kpis.cur.w / kpis.cur.c : 30;
-    const value = conv.map((v) => Math.round(v * avgVal));
+    const value = days.map((d) => d.w != null && d.w > 0 ? d.w : Math.round(d.c * avgVal));
     return { users, conv, value };
   }, [days, kpis]);
 
@@ -59,20 +59,24 @@ export default function Forecast({ data }) {
     ],
   }), [days, series, kpi, targetLine]);
 
-  // trendtabel: MoM uit data, QoQ en YoY indicatief zolang er geen lange historie is
+  // trendtabel: MoM, QoQ en YoY nu uit echte periode-totalen (data.periods)
   const rows = useMemo(() => {
-    const avgVal = kpis.cur.c ? kpis.cur.w / kpis.cur.c : 30;
-    const mk = (cur, prev) => (prev ? Math.round(((cur - prev) / prev) * 100) : 0);
-    return [
-      { l: "Gebruikers", mom: mk(kpis.cur.u, kpis.prev.u), qoq: 9, yoy: 21 },
-      { l: "Conversies", mom: mk(kpis.cur.c, kpis.prev.c), qoq: 12, yoy: 28 },
-      { l: "Conversiewaarde", mom: mk(kpis.cur.c * avgVal, (kpis.prev.c || 0) * avgVal), qoq: 14, yoy: 26 },
-    ];
-  }, [kpis]);
+    const P = periods || {};
+    const mk = (cur, base) => (base ? Math.round(((cur - base) / base) * 100) : null);
+    const row = (label, key) => ({
+      l: label,
+      mom: mk(kpis.cur[key], P.prev && P.prev[key]),
+      qoq: mk(kpis.cur[key], P.qoq && P.qoq[key]),
+      yoy: mk(kpis.cur[key], P.yoy && P.yoy[key]),
+    });
+    return [row("Gebruikers", "u"), row("Conversies", "c"), row("Conversiewaarde", "w")];
+  }, [kpis, periods]);
 
   const Cell = ({ v }) => (
     <td className="num mono">
-      <span className={"kd " + (v >= t.growthPct ? "up" : "down")} style={{ display: "inline" }}>{v >= 0 ? "+" : ""}{v}%</span>
+      {v === null || v === undefined
+        ? <span style={{ color: "var(--dim)" }}>n.v.t.</span>
+        : <span className={"kd " + (v >= t.growthPct ? "up" : "down")} style={{ display: "inline" }}>{v >= 0 ? "+" : ""}{v}%</span>}
     </td>
   );
 
@@ -118,7 +122,7 @@ export default function Forecast({ data }) {
             </tbody>
           </table>
         </div>
-        <div className="maphint">Kleur toont of de trend het groeitarget haalt. Het dagtarget voor conversies stuurt ook de targetlijn op Result. QoQ en YoY zijn indicatief tot er meer historie is gekoppeld.</div>
+        <div className="maphint">Kleur toont of de trend het groeitarget haalt. Het dagtarget voor conversies stuurt ook de targetlijn op Result. n.v.t. betekent dat de vergelijkingsperiode nog geen data heeft.</div>
       </Card>
     </div>
   );
