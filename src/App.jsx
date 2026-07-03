@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import Result from "./tabs/Result.jsx";
 import Trends from "./tabs/Trends.jsx";
 import Insights from "./tabs/Insights.jsx";
+import Action from "./tabs/Action.jsx";
 import Forecast from "./tabs/Forecast.jsx";
 import { Seg } from "./components/ui.jsx";
 import { fetchData, demoData, CLIENTS, BRAND, wordmark } from "./data.js";
@@ -20,6 +21,7 @@ const IC = {
   result: <svg viewBox="0 0 24 24"><path d="M4 19V5M4 19h16M8 15l3-4 3 3 4-6" /></svg>,
   trends: <svg viewBox="0 0 24 24"><path d="M3 17l6-6 4 4 7-8" /><path d="M21 7h-4M21 7v4" /></svg>,
   insights: <svg viewBox="0 0 24 24"><path d="M9 18h6M10 22h4M12 2a6 6 0 00-4 10c1 1 1 2 1 3h6c0-1 0-2 1-3a6 6 0 00-4-10z" /></svg>,
+  action: <svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4" /><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11" /></svg>,
   forecast: <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8" /><circle cx="12" cy="12" r="3" /></svg>,
   card: <svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="3" /><path d="M4 10h16" /></svg>,
 };
@@ -28,6 +30,7 @@ const TABS = [
   { id: "result", label: "Result" },
   { id: "trends", label: "Trends" },
   { id: "insights", label: "Insights" },
+  { id: "action", label: "Action" },
   { id: "forecast", label: "Forecast" },
 ];
 
@@ -45,7 +48,10 @@ const TREE = [
   ]},
   { id: "insights", label: "Insights", children: [
     { label: "Rapport", cards: ["Genereer rapport"] },
-    { label: "Analyse", cards: ["Business insights", "Optimalisatielijst"] },
+    { label: "Analyse", cards: ["Business insights"] },
+  ]},
+  { id: "action", label: "Action", children: [
+    { label: "Vervolgacties", cards: ["Goedkeuren", "Afkeuren", "Feedback"] },
   ]},
   { id: "forecast", label: "Forecast", children: [
     { label: "Prognose", cards: ["KPI prognose", "Targets", "Trendtabel"] },
@@ -121,7 +127,7 @@ function BrandBar() {
         {BRAND.logo ? <img src={BRAND.logo} alt={BRAND.name} /> : <span className="wm">{wm}</span>}
       </div>
       <div className="bmeta">
-        <div className="bname disp">{BRAND.name}</div>
+        <div className="bname disp">{BRAND.name}<span className="btag">&bull; {BRAND.tagline}</span></div>
         <div className="bsite">{BRAND.site}</div>
       </div>
       <div className="bspace" />
@@ -185,6 +191,7 @@ export default function App() {
           {tab === "result" && <Result data={d} filter={filter} goTrends={() => setTab("trends")} />}
           {tab === "trends" && <Trends />}
           {tab === "insights" && <Insights data={d} />}
+          {tab === "action" && <Action data={d} />}
           {tab === "forecast" && <Forecast data={d} />}
         </div>
       </div>
