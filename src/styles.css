@@ -1,16 +1,19 @@
 :root{
-  --paper:#F4F3F6; --paper2:#EFEBF4; --paper3:#F6EDF3;
-  --card:rgba(255,255,255,.82); --inset:#F6F4F9;
-  --stroke:#E6E3EC; --ink:#141019; --mist:#6E6879; --dim:#9A93A8;
-  --magenta:#E6007E; --magenta2:#FF4DA1; --violet:#7A3FF2; --deepviolet:#3B1E5E;
-  --pos:#0E9F6E; --neg:#FF4DA1;
-  --hl:radial-gradient(140px 100px at 15% 0%, rgba(255,77,161,.5), transparent 70%), linear-gradient(145deg,#E6007E,#3B1E5E);
+  /* ZO huisstijl: diepblauw, oranje, teal. Flii-magenta blijft alleen voor het merkje. */
+  --flii:#E6007E;
+  --paper:#F3F5FA; --paper2:#EEF1F8; --paper3:#F4F1EA;
+  --card:rgba(255,255,255,.86); --inset:#EEF2F8;
+  --stroke:#DCE2EC; --ink:#14213D; --mist:#5B6685; --dim:#97A0B6;
+  --magenta:#1C2E70; --magenta2:#EE9E2E; --violet:#45B4C4; --deepviolet:#14286E;
+  --navy:#1C2E70; --orange:#EE9E2E; --teal:#45B4C4;
+  --pos:#0E9F6E; --neg:#E0245A;
+  --hl:radial-gradient(150px 110px at 12% 0%, rgba(238,158,46,.55), transparent 70%), linear-gradient(140deg,#1C2E70,#14286E 60%,#0F1E52);
 }
 *{box-sizing:border-box;min-width:0}
 html,body{max-width:100%;overflow-x:hidden}
 body{margin:0;font-family:'Inter',system-ui,sans-serif;color:var(--ink);-webkit-font-smoothing:antialiased;
-  background:radial-gradient(1000px 640px at 88% -8%, rgba(230,0,126,.10) 0%, transparent 55%),
-             radial-gradient(860px 640px at -8% 108%, rgba(122,63,242,.10) 0%, transparent 55%),
+  background:radial-gradient(1000px 640px at 88% -8%, rgba(28,46,112,.10) 0%, transparent 55%),
+             radial-gradient(860px 640px at -8% 108%, rgba(238,158,46,.12) 0%, transparent 55%),
              linear-gradient(140deg,var(--paper),var(--paper2) 55%,var(--paper3));
   min-height:100vh;padding:16px}
 .mono{font-family:'IBM Plex Mono',monospace}
@@ -20,7 +23,7 @@ body{margin:0;font-family:'Inter',system-ui,sans-serif;color:var(--ink);-webkit-
 .side{width:210px;flex:none;background:var(--card);border:1px solid var(--stroke);border-radius:18px;
   padding:16px 12px;display:flex;flex-direction:column;gap:5px;backdrop-filter:blur(10px);align-self:flex-start}
 .brand{display:flex;align-items:center;gap:10px;padding:2px 6px 13px;border-bottom:1px solid var(--stroke);margin-bottom:9px}
-.brandmark{width:29px;height:29px;border-radius:9px;background:var(--magenta);display:flex;align-items:center;justify-content:center;flex:none}
+.brandmark{width:29px;height:29px;border-radius:9px;background:var(--flii);display:flex;align-items:center;justify-content:center;flex:none}
 .brandmark svg{width:21px;height:21px}
 .brandname{font-family:'Space Grotesk';font-weight:600;font-size:11px;letter-spacing:.18em;text-transform:uppercase}
 .mitem{display:flex;align-items:center;gap:11px;padding:9px 9px;border-radius:12px;cursor:pointer;color:var(--mist)}
@@ -62,7 +65,7 @@ body{margin:0;font-family:'Inter',system-ui,sans-serif;color:var(--ink);-webkit-
 .kpi:first-child{border-left:none}
 .kpi.kclick{cursor:pointer;border-radius:10px;transition:background .15s}
 .kpi.kclick:hover{background:var(--inset)}
-.kpi.kon{background:rgba(230,0,126,.08)}
+.kpi.kon{background:rgba(28,46,112,.08)}
 .kpi.kon .kl{color:var(--magenta)}
 .kpi .kl{font-family:'IBM Plex Mono';font-size:clamp(8px,1.6vw,10px);letter-spacing:.06em;text-transform:uppercase;color:var(--mist);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .kpi .kv{font-family:'Space Grotesk';font-weight:700;font-size:clamp(13px,3.4vw,18px);margin-top:5px;white-space:nowrap}
@@ -89,7 +92,7 @@ td{padding:7px 7px;border-bottom:1px solid var(--inset);white-space:nowrap}
 tr:last-child td{border-bottom:none}
 table:not(.compact) th:first-child,table:not(.compact) td:first-child{position:sticky;left:0;background:#fff;z-index:2;max-width:160px;overflow:hidden;text-overflow:ellipsis}
 .cell{display:flex;align-items:center;gap:8px;font-weight:500}
-.cell .ci{width:18px;height:18px;border-radius:6px;background:rgba(230,0,126,.12);display:flex;align-items:center;justify-content:center;flex:none}
+.cell .ci{width:18px;height:18px;border-radius:6px;background:rgba(28,46,112,.10);display:flex;align-items:center;justify-content:center;flex:none}
 .cell .ci svg{width:10px;height:10px;stroke:var(--magenta);fill:none;stroke-width:2.2}
 
 .demrow{display:flex;gap:12px;align-items:center}
@@ -120,8 +123,8 @@ table:not(.compact) th:first-child,table:not(.compact) td:first-child{position:s
 .btn{font-family:'Space Grotesk';font-weight:600;font-size:12.5px;border:none;border-radius:11px;padding:10px 18px;cursor:pointer;background:var(--magenta);color:#fff}
 .rpost{display:flex;gap:11px;padding:8px 0;border-bottom:1px solid var(--inset);align-items:flex-start}
 .rpost:last-child{border-bottom:none}
-.rpic{width:26px;height:26px;border-radius:8px;background:rgba(122,63,242,.12);display:flex;align-items:center;justify-content:center;flex:none}
-.rpic svg{width:13px;height:13px;stroke:var(--violet);fill:none;stroke-width:2}
+.rpic{width:26px;height:26px;border-radius:8px;background:rgba(69,180,196,.14);display:flex;align-items:center;justify-content:center;flex:none}
+.rpic svg{width:13px;height:13px;stroke:var(--teal);fill:none;stroke-width:2}
 .rpost .rt{font-size:12.5px;font-weight:500;line-height:1.35}
 .rpost .rm{font-family:'IBM Plex Mono';font-size:9.5px;color:var(--dim);margin-top:3px}
 .demobadge{font-family:'IBM Plex Mono';font-size:9px;letter-spacing:.06em;text-transform:uppercase;color:var(--dim);border:1px solid var(--stroke);border-radius:999px;padding:3px 9px}
@@ -149,7 +152,7 @@ table:not(.compact) th:first-child,table:not(.compact) td:first-child{position:s
   .bni{display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 4px;border-radius:11px;color:var(--dim);flex:1;min-width:0;cursor:pointer}
   .bni svg{width:17px;height:17px;stroke:currentColor;fill:none;stroke-width:2}
   .bni span{font-family:'IBM Plex Mono';font-size:8px;letter-spacing:.02em;text-transform:uppercase;white-space:nowrap}
-  .bni.on{color:var(--magenta);background:rgba(230,0,126,.10)}
+  .bni.on{color:var(--magenta);background:rgba(28,46,112,.10)}
 }
 
 /* zoekresultaten */
@@ -166,7 +169,7 @@ table:not(.compact) th:first-child,table:not(.compact) td:first-child{position:s
 .kwscroll{max-height:238px;overflow-y:auto;border:1px solid var(--stroke);border-radius:11px}
 .kwscroll table{margin-top:0;min-width:0}
 .kwscroll th{position:sticky;top:0;background:#fff;z-index:3;padding-top:8px}
-tr.sel td{background:rgba(230,0,126,.07)}
+tr.sel td{background:rgba(28,46,112,.07)}
 tr.click{cursor:pointer}
 
 /* subreddit chips en postlinks */
@@ -185,8 +188,9 @@ tr.click{cursor:pointer}
 
 /* brandbalk bovenaan elke tab */
 .brandbar{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
-.blogo{width:52px;height:52px;border-radius:13px;background:var(--magenta);display:flex;align-items:center;justify-content:center;flex:none;overflow:hidden;box-shadow:0 0 18px rgba(230,0,126,.35)}
-.blogo img{width:100%;height:100%;object-fit:cover}
+.blogo{width:52px;height:52px;border-radius:13px;background:#fff;border:1px solid var(--stroke);display:flex;align-items:center;justify-content:center;flex:none;overflow:hidden;padding:6px}
+.blogo.wmark{background:var(--navy);border:none;padding:0}
+.blogo img{width:100%;height:100%;object-fit:contain}
 .blogo .wm{font-family:'Space Grotesk';font-weight:700;font-size:19px;color:#fff;letter-spacing:.02em}
 .bmeta{min-width:0;display:flex;flex-direction:column;justify-content:center}
 .bname{font-family:'Space Grotesk';font-weight:700;font-size:16px;line-height:1.2}
@@ -198,7 +202,8 @@ tr.click{cursor:pointer}
 .subcard .sv{font-family:'Space Grotesk';font-weight:600;font-size:12px;margin-top:2px}
 .bspace{flex:1}
 .bperiod{flex:none}
-.acctwm{width:36px;height:36px;border-radius:10px;background:var(--magenta);color:#fff;display:flex;align-items:center;justify-content:center;flex:none;cursor:pointer;font-family:'Space Grotesk';font-weight:700;font-size:13px}
+.acctwm{width:36px;height:36px;border-radius:10px;background:#fff;border:1px solid var(--stroke);display:flex;align-items:center;justify-content:center;flex:none;cursor:pointer;overflow:hidden;padding:4px;color:var(--navy);font-family:'Space Grotesk';font-weight:700;font-size:12px}
+.acctwm img{width:100%;height:100%;object-fit:contain}
 
 /* gecentreerde toggle als sectiekop */
 .seghead{display:flex;justify-content:center;margin-bottom:10px}
