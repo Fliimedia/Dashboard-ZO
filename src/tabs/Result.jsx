@@ -58,11 +58,7 @@ export default function Result({ data, filter, goTrends }) {
 
   return (
     <div className="view">
-      <div className="hrow">
-        <Seg value={filter.period} onChange={filter.setPeriod} options={[
-          { value: "jaar", label: "Jaar" }, { value: "kwartaal", label: "Kwartaal" },
-          { value: "maand", label: "Maand" }, { value: "week", label: "Week" },
-        ]} />
+      <div className="hrow" style={{ justifyContent: "flex-end" }}>
         <Seg value={filter.compare} onChange={filter.setCompare} options={[
           { value: "prev", label: "Vs vorige periode" }, { value: "yoy", label: "Vs vorig jaar" },
         ]} />
@@ -79,15 +75,11 @@ export default function Result({ data, filter, goTrends }) {
 
       <div className="r3">
         <Card>
-          <div ref={tableRef} className="hrow" style={{ scrollMarginTop: 12 }}>
-            <div>
-              <div className="h1 disp">{DIM_LABELS[dimKey]}</div>
-              <div className="h2">6 metrics per {dimKey === "kanalen" ? "kanaal" : dimKey === "campagnes" ? "campagne" : "landingspagina"}</div>
-            </div>
+          <div ref={tableRef} className="seghead" style={{ scrollMarginTop: 12 }}>
             <Seg value={dimKey} onChange={setDimKey} options={[
               { value: "kanalen", label: "Kanalen" },
               { value: "campagnes", label: "Campagnes" },
-              { value: "landingspaginas", label: "Landingspag." },
+              { value: "landingspaginas", label: "Landingspagina's" },
             ]} />
           </div>
           <div className="tscroll">
@@ -268,8 +260,7 @@ function FlowCard({ kpis, dims }) {
 
   return (
     <Card>
-      <div className="hrow">
-        <div className="h1 disp">Userflow</div>
+      <div className="seghead">
         <Seg value={mode} onChange={setMode} options={[
           { value: "flow", label: "Flow" }, { value: "funnel", label: "Funnel" },
         ]} />
@@ -362,11 +353,7 @@ function MapCard({ countries, cities }) {
 
   return (
     <Card>
-      <div className="hrow">
-        <div>
-          <div className="h1 disp">Locatie</div>
-          <div className="h2">Sessies per gebied</div>
-        </div>
+      <div className="seghead">
         <Seg value={view} onChange={(v) => { setView(v); setHint("Tik op een stad om in te zoomen"); }} options={[
           { value: "land", label: "Land" }, { value: "continent", label: "Continent" }, { value: "wereld", label: "Wereld" },
         ]} />
