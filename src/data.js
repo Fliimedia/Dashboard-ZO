@@ -6,18 +6,31 @@ const METRICS6 = [
   { name: "engagementRate" }, { name: "keyEvents" }, { name: "totalRevenue" },
 ];
 
-const RANGE_CUR = [{ startDate: "30daysAgo", endDate: "yesterday" }];
-const RANGE_PREV = [{ startDate: "60daysAgo", endDate: "31daysAgo" }];
+// Periodefilter: aantal dagen per periode, en het vergelijkingsvenster
+export const PERIOD_DAYS = { week: 7, maand: 30, kwartaal: 90, jaar: 365 };
 
-export function buildReports() {
+function ranges(period, compare) {
+  const n = PERIOD_DAYS[period] || 30;
+  const cur = [{ startDate: n + "daysAgo", endDate: "yesterday" }];
+  let prev;
+  if (compare === "yoy") {
+    prev = [{ startDate: (n + 365) + "daysAgo", endDate: "366daysAgo" }];
+  } else {
+    prev = [{ startDate: (2 * n) + "daysAgo", endDate: (n + 1) + "daysAgo" }];
+  }
+  return { cur, prev, n };
+}
+
+export function buildReports(period = "maand", compare = "prev") {
+  const { cur, prev, n } = ranges(period, compare);
   return [
-    { dateRanges: RANGE_CUR, metrics: METRICS6 },
-    { dateRanges: RANGE_PREV, metrics: METRICS6 },
-    { dateRanges: RANGE_CUR, dimensions: [{ name: "date" }], metrics: [{ name: "sessions" }, { name: "keyEvents" }, { name: "engagementRate" }], orderBys: [{ dimension: { dimensionName: "date" } }], limit: 31 },
-    { dateRanges: RANGE_CUR, dimensions: [{ name: "sessionDefaultChannelGroup" }], metrics: METRICS6, orderBys: [{ metric: { metricName: "sessions" }, desc: true }], limit: 8 },
-    { dateRanges: RANGE_CUR, dimensions: [{ name: "sessionCampaignName" }], metrics: METRICS6, orderBys: [{ metric: { metricName: "sessions" }, desc: true }], limit: 8 },
-    { dateRanges: RANGE_CUR, dimensions: [{ name: "landingPage" }], metrics: METRICS6, orderBys: [{ metric: { metricName: "sessions" }, desc: true }], limit: 8 },
-    { dateRanges: RANGE_CUR, dimensions: [{ name: "country" }], metrics: [{ name: "sessions" }], orderBys: [{ metric: { metricName: "sessions" }, desc: true }], limit: 10 },
+    { dateRanges: cur, metrics: METRICS6 },
+    { dateRanges: prev, metrics: METRICS6 },
+    { dateRanges: cur, dimensions: [{ name: "date" }], metrics: [{ name: "sessions" }, { name: "keyEvents" }, { name: "engagementRate" }], orderBys: [{ dimension: { dimensionName: "date" } }], limit: n + 5 },
+    { dateRanges: cur, dimensions: [{ name: "sessionDefaultChannelGroup" }], metrics: METRICS6, orderBys: [{ metric: { metricName: "sessions" }, desc: true }], limit: 8 },
+    { dateRanges: cur, dimensions: [{ name: "sessionCampaignName" }], metrics: METRICS6, orderBys: [{ metric: { metricName: "sessions" }, desc: true }], limit: 8 },
+    { dateRanges: cur, dimensions: [{ name: "landingPage" }], metrics: METRICS6, orderBys: [{ metric: { metricName: "sessions" }, desc: true }], limit: 8 },
+    { dateRanges: cur, dimensions: [{ name: "country" }], metrics: [{ name: "sessions" }], orderBys: [{ metric: { metricName: "sessions" }, desc: true }], limit: 10 },
   ];
 }
 
@@ -32,11 +45,11 @@ function mapRows(report) {
   }));
 }
 
-export async function fetchData(propertyId) {
+export async function fetchData(propertyId, period = "maand", compare = "prev") {
   const res = await fetch("/api/ga", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ propertyId, reports: buildReports() }),
+    body: JSON.stringify({ propertyId, reports: buildReports(period, compare) }),
   });
   if (!res.ok) throw new Error("ga " + res.status);
   const out = await res.json();
@@ -63,20 +76,26 @@ export async function fetchData(propertyId) {
 // ---------- demo ----------
 const BASE = [420,510,480,560,610,470,390,540,620,700,660,720,540,470,500,560,590,620,580,610,640,690,600,520,480,530,570,610,650,700];
 
-export function demoData() {
-  const days = BASE.map((s, i) => {
-    const d = new Date(2026, 5, 1 + i);
-    return {
+export function demoData(period = "maand", compare = "prev") {
+  const n = PERIOD_DAYS[period] || 30;
+  const today = new Date(2026, 6, 2);
+  const days = [];
+  for (let i = 0; i < n; i++) {
+    const s = BASE[i % BASE.length] + ((i * 13) % 40) - 20;
+    const d = new Date(today); d.setDate(d.getDate() - (n - i));
+    days.push({
       date: ("0" + d.getDate()).slice(-2) + "-" + ("0" + (d.getMonth() + 1)).slice(-2),
       s, c: Math.max(8, Math.round(s * 0.045 + ((i % 7 < 5) ? 4 : -5))),
       e: 56 + Math.round((s - 390) / 22),
-    };
-  });
+    });
+  }
+  const f = n / 30;
+  const yo = compare === "yoy" ? 0.88 : 1; // vorig jaar iets lager in demo
   return {
     live: false,
     kpis: {
-      cur: { u: 9210, s: 14912, e: 68, c: 622, w: 20640, nu: 3052 },
-      prev: { u: 8770, s: 13314, e: 63, c: 540 },
+      cur: { u: Math.round(9210 * f), s: Math.round(14912 * f), e: 68, c: Math.round(622 * f), w: Math.round(20640 * f), nu: Math.round(3052 * f) },
+      prev: { u: Math.round(8770 * f * yo), s: Math.round(13314 * f * yo), e: 63, c: Math.round(540 * f * yo) },
     },
     days,
     dims: {
