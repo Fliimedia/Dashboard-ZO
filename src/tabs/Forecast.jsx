@@ -52,7 +52,7 @@ export default function Forecast({ data }) {
       { name: "Resultaat", type: "line", data: series[kpi], smooth: true, showSymbol: false,
         lineStyle: { width: 3, color: COLORS.magenta }, itemStyle: { color: COLORS.magenta },
         areaStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-          { offset: 0, color: "rgba(28,46,112,.22)" }, { offset: 1, color: "rgba(28,46,112,0)" }]) } },
+          { offset: 0, color: "rgba(230,0,126,.22)" }, { offset: 1, color: "rgba(230,0,126,0)" }]) } },
       { name: "Target", type: "line", data: targetLine, showSymbol: false,
         lineStyle: { width: 2, type: "dashed", color: COLORS.deepviolet },
         itemStyle: { color: COLORS.deepviolet } },
