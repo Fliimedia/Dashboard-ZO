@@ -4,6 +4,8 @@ import Trends from "./tabs/Trends.jsx";
 import Insights from "./tabs/Insights.jsx";
 import Action from "./tabs/Action.jsx";
 import Forecast from "./tabs/Forecast.jsx";
+import Settings from "./tabs/Settings.jsx";
+import Profile from "./tabs/Profile.jsx";
 import { Seg } from "./components/ui.jsx";
 import { fetchData, demoData, CLIENTS, BRAND, wordmark } from "./data.js";
 
@@ -24,6 +26,8 @@ const IC = {
   action: <svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4" /><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11" /></svg>,
   forecast: <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8" /><circle cx="12" cy="12" r="3" /></svg>,
   card: <svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="3" /><path d="M4 10h16" /></svg>,
+  settings: <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3" /><path d="M19 12a7 7 0 00-.2-1.6l2-1.6-2-3.4-2.4 1a7 7 0 00-2.8-1.6L13 2h-4l-.6 2.8a7 7 0 00-2.8 1.6l-2.4-1-2 3.4 2 1.6a7 7 0 000 3.2l-2 1.6 2 3.4 2.4-1a7 7 0 002.8 1.6L9 22h4l.6-2.8a7 7 0 002.8-1.6l2.4 1 2-3.4-2-1.6c.13-.52.2-1.06.2-1.6z" /></svg>,
+  profile: <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4" /><path d="M4 21c1.5-4 5-6 8-6s6.5 2 8 6" /></svg>,
 };
 
 const TABS = [
@@ -55,6 +59,12 @@ const TREE = [
   ]},
   { id: "forecast", label: "Forecast", children: [
     { label: "Prognose", cards: ["KPI prognose", "Targets", "Trendtabel"] },
+  ]},
+  { id: "settings", label: "Instellingen", children: [
+    { label: "Voorkeuren", cards: ["Taal", "API-sleutel", "Targets"] },
+  ]},
+  { id: "profile", label: "Profiel", children: [
+    { label: "Account", cards: ["Merk", "Inloggen"] },
   ]},
 ];
 
@@ -137,8 +147,8 @@ function BrandBar() {
   );
 }
 
-function AcctWordmark() {
-  return <div className="acctwm">{BRAND.logo ? <img src={BRAND.logo} alt={BRAND.name} /> : wordmark(BRAND.name)}</div>;
+function AcctWordmark({ onClick }) {
+  return <div className="acctwm" onClick={onClick}>{BRAND.logo ? <img src={BRAND.logo} alt={BRAND.name} /> : wordmark(BRAND.name)}</div>;
 }
 
 export default function App() {
@@ -157,25 +167,28 @@ export default function App() {
 
   const d = data || demoData(period, compare);
   const filter = { period, setPeriod, compare, setCompare };
-  const title = TABS.find((t) => t.id === tab)?.label || "";
+  const title = tab === "settings" ? "Instellingen" : tab === "profile" ? "Profiel" : (TABS.find((t) => t.id === tab)?.label || "");
 
   return (
     <>
       <div className="frame">
-        <div className="side">
-          <div className="brand"><BrandMark /><div className="brandname">Performance OS</div></div>
+        <div className="rail">
+          <div className="railbrand"><BrandMark /></div>
           {TABS.map((t) => (
-            <div key={t.id} className={"mitem" + (tab === t.id ? " on" : "")} onClick={() => setTab(t.id)}>
-              <div className="micon">{IC[t.id]}</div><span>{t.label}</span>
+            <div key={t.id} className={"ritm" + (tab === t.id ? " on" : "")} title={t.label} onClick={() => setTab(t.id)}>
+              {IC[t.id]}
             </div>
           ))}
+          <div className="railspace" />
+          <div className={"ritm" + (tab === "settings" ? " on" : "")} title="Instellingen" onClick={() => setTab("settings")}>{IC.settings}</div>
+          <div className={"ritm" + (tab === "profile" ? " on" : "")} title="Profiel" onClick={() => setTab("profile")}>{IC.profile}</div>
         </div>
 
         <div className="mainc">
           <div className="mobilehead">
             <BrandMark size={34} />
             <SearchBox placeholder="Zoeken" onGo={setTab} />
-            <AcctWordmark />
+            <AcctWordmark onClick={() => setTab("profile")} />
           </div>
           <div className="topbar">
             <div className="crumbs">
@@ -184,7 +197,7 @@ export default function App() {
             </div>
             <SearchBox placeholder="Typ hier..." onGo={setTab} />
             {!d.live && <span className="demobadge">demo data</span>}
-            <AcctWordmark />
+            <AcctWordmark onClick={() => setTab("profile")} />
           </div>
 
           <BrandBar />
@@ -194,6 +207,8 @@ export default function App() {
           {tab === "insights" && <Insights data={d} />}
           {tab === "action" && <Action data={d} />}
           {tab === "forecast" && <Forecast data={d} />}
+          {tab === "settings" && <Settings />}
+          {tab === "profile" && <Profile />}
         </div>
       </div>
 
