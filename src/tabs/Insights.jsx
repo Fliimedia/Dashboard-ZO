@@ -1,9 +1,12 @@
 import { useState } from "react";
 import { Card, fmtInt, fmtPctDelta } from "../components/ui.jsx";
+import { PERIOD_LABEL } from "../data.js";
 
 const CTX_KEY = "pos_report_context";
 
-export default function Insights({ data }) {
+export default function Insights({ data, period = "maand", compare = "prev" }) {
+  const plabel = PERIOD_LABEL[period] || "deze periode";
+  const cmp = compare === "yoy" ? "dezelfde periode vorig jaar" : "de periode ervoor";
   const { kpis, dims } = data;
   const [busy, setBusy] = useState(false);
   const [report, setReport] = useState("");
@@ -34,7 +37,7 @@ export default function Insights({ data }) {
       const res = await fetch("/api/report", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ summary: { kpis, dims }, context: ctx }),
+        body: JSON.stringify({ summary: { kpis, dims }, context: ctx, period: plabel }),
       });
       if (!res.ok) throw new Error("api " + res.status);
       const out = await res.json();
@@ -50,7 +53,7 @@ export default function Insights({ data }) {
         <div className="hrow">
           <div>
             <div className="h1 disp">Genereer rapport</div>
-            <div className="h2">Realtime analyse op basis van de actuele cijfers</div>
+            <div className="h2">Realtime analyse over de {plabel}</div>
           </div>
           <button className="btn" onClick={generate} disabled={busy}>{busy ? "Bezig..." : "Genereer rapport"}</button>
         </div>
@@ -65,9 +68,9 @@ export default function Insights({ data }) {
 
       <Card>
         <div className="h1 disp">Business insights</div>
-        <div className="h2">Het verhaal van deze periode</div>
+        <div className="h2">Het verhaal van de {plabel}</div>
         <p style={{ fontSize: 13, lineHeight: 1.65, margin: "4px 0 0" }}>
-          Het verkeer {delta >= 0 ? "steeg" : "daalde"} {Math.abs(delta)}% naar {fmtInt(kpis.cur.s)} sessies.
+          Het verkeer {delta >= 0 ? "steeg" : "daalde"} in de {plabel} met {Math.abs(delta)}% naar {fmtInt(kpis.cur.s)} sessies, tegenover {cmp}.
           {" "}{topCh?.n} is het sterkste kanaal, en {topLp?.n} levert de meeste conversies.
           {" "}Aandachtspunt is {weakCh?.n}, met de laagste betrokkenheid ({weakCh?.e}%).
         </p>
