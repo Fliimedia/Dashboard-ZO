@@ -165,23 +165,34 @@ export function demoData(period = "maand", compare = "prev") {
   const today = new Date(2026, 6, 2);
   const days = [];
   for (let i = 0; i < n; i++) {
-    const s = BASE[i % BASE.length] + ((i * 13) % 40) - 20;
+    // vorm per periode: jaar heeft seizoen (jan-piek), kwartaal een lichte trend, week een duidelijk weekritme
+    const seizoen = n >= 300 ? 1 + 0.35 * Math.cos(((i / n) * 2 - 0.1) * Math.PI * 2) : 1;
+    const trend = n >= 60 && n < 300 ? 1 + (i / n) * 0.22 : 1;
+    const weekritme = (i % 7 < 5) ? 1.08 : 0.78;
+    const ruis = 1 + (((i * 13) % 40) - 20) / 420;
+    const s = Math.round(470 * seizoen * trend * weekritme * ruis);
     const d = new Date(today); d.setDate(d.getDate() - (n - i));
     days.push({
       date: ("0" + d.getDate()).slice(-2) + "-" + ("0" + (d.getMonth() + 1)).slice(-2),
-      s, c: Math.max(8, Math.round(s * 0.045 + ((i % 7 < 5) ? 4 : -5))),
-      e: 56 + Math.round((s - 390) / 22),
-      u: Math.round(s * 0.62), w: Math.round(s * 0.045 * 33),
+      s, c: Math.max(4, Math.round(s * 0.042 + ((i % 7 < 5) ? 3 : -4))),
+      e: Math.min(82, 54 + Math.round((s - 420) / 24)),
+      u: Math.round(s * 0.62), w: Math.round(s * 0.042 * 33),
     });
   }
+  // KPI-totalen zijn de som van de dagreeks, zodat grafiek en scorecards altijd kloppen
+  const sum = (k) => days.reduce((a, b) => a + b[k], 0);
+  const curTot = { s: sum("s"), u: sum("u"), c: sum("c"), w: sum("w"),
+    e: Math.round(days.reduce((a, b) => a + b.e, 0) / days.length) };
+  const dprev = compare === "yoy" ? { s: .82, u: .84, c: .78, w: .80, e: .96 } :
+    period === "week" ? { s: .93, u: .94, c: .90, w: .91, e: .99 } :
+    period === "jaar" ? { s: .74, u: .76, c: .70, w: .72, e: .95 } : { s: .89, u: .90, c: .86, w: .87, e: .98 };
+  const prevTot = { s: Math.round(curTot.s * dprev.s), u: Math.round(curTot.u * dprev.u),
+    c: Math.round(curTot.c * dprev.c), w: Math.round(curTot.w * dprev.w), e: Math.round(curTot.e * dprev.e) };
   const f = n / 30;
   const yo = compare === "yoy" ? 0.88 : 1; // vorig jaar iets lager in demo
   return {
     live: false,
-    kpis: {
-      cur: { u: Math.round(9210 * f), s: Math.round(14912 * f), e: 68, c: Math.round(622 * f), w: Math.round(20640 * f), nu: Math.round(3052 * f) },
-      prev: { u: Math.round(8770 * f * yo), s: Math.round(13314 * f * yo), e: 63, c: Math.round(540 * f * yo) },
-    },
+    kpis: { cur: curTot, prev: prevTot },
     days,
     dims: {
       kanalen: [
@@ -239,13 +250,7 @@ export function demoData(period = "maand", compare = "prev") {
         { source: "/broodfonds-vs-aov", target: "Exit", value: Math.round(1658 * f) },
       ],
     },
-    demografie: {
-      age: [
-        { n: "18-24", v: 640 }, { n: "25-34", v: 3120 }, { n: "35-44", v: 4280 },
-        { n: "45-54", v: 3060 }, { n: "55-64", v: 2210 }, { n: "65+", v: 1180 },
-      ],
-      gender: [ { n: "male", v: 8420 }, { n: "female", v: 6490 } ],
-    },
+    demografie: null,
     eventsFound: false,
   };
 }
