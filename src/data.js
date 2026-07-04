@@ -304,10 +304,10 @@ export const FORCE_DEMO = true;
 
 // Merk van de klant voor de brandbalk. logo:null gebruikt de wordmark van de initialen.
 export const BRAND = {
-  name: "Demo Brand",
-  site: "demobrand.nl",
-  logo: null,
-  tagline: "Product voor doelgroep",
+  name: "Flii Media",
+  site: "flii.nl",
+  logo: "/flii-logo.svg",
+  tagline: "Performance media voor merken",
   description: "Strategie, beheer en optimalisatie van performance media",
 };
 
