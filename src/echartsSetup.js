@@ -2,8 +2,8 @@
 export const COLORS = {
   magenta: "#E6007E",
   magenta2: "#FF4DA1",
-  violet: "#7A3FF2",
-  deepviolet: "#3B1E5E",
+  violet: "#141019",
+  deepviolet: "#141019",
   mist: "#6E6879",
   dim: "#9A93A8",
 };
