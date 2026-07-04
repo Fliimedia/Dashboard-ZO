@@ -179,39 +179,31 @@ function DemografieCard({ demografie }) {
 }
 
 function AISummary({ s, kpis, jumpTo, jumpMap, periodLabel }) {
-  const Up = <svg viewBox="0 0 24 24"><path d="M12 19V5M6 11l6-6 6 6" /></svg>;
+  const I = {
+    ch: <svg viewBox="0 0 24 24"><path d="M5 12a7 7 0 0114 0" /><path d="M8.5 12a3.5 3.5 0 017 0" /><circle cx="12" cy="12" r="1.2" /><path d="M12 13v7" /></svg>,
+    ca: <svg viewBox="0 0 24 24"><path d="M3 11l14-5v12L3 13v-2z" /><path d="M11.6 16.8a3 3 0 01-5.8-1.6" /><path d="M17 8a4 4 0 010 8" /></svg>,
+    lp: <svg viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2" /><path d="M8 8h8M8 12h8M8 16h5" /></svg>,
+    geo: <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" /><path d="M3 12h18M12 3c3 3.5 3 14 0 18M12 3c-3 3.5-3 14 0 18" /></svg>,
+  };
+  const items = [
+    { ic: I.ch, ot: <>Top kanaal: {s.topCh?.n}, {fmtInt(s.topCh?.s || 0)} sessies</>, od: "kanalen / bekijk tabel", go: () => jumpTo("kanalen") },
+    { ic: I.ca, ot: <>Sterkste campagne: {s.topCa?.n}, {fmtInt(s.topCa?.s || 0)} sessies</>, od: "campagnes / bekijk tabel", go: () => jumpTo("campagnes") },
+    { ic: I.lp, ot: <>Beste landingspagina: {s.topLp?.n}, {fmtInt(s.topLp?.s || 0)} sessies</>, od: "landingspagina's / bekijk tabel", go: () => jumpTo("landingspaginas") },
+    { ic: I.geo, ot: <>Sterkste markt: {s.topLand?.name || "onbekend"}, {fmtInt(s.topLand?.value || 0)} sessies{s.topLand?.e != null ? ", " + s.topLand.e + "% betrokken" : ""}</>, od: "locatie / bekijk kaart", go: jumpMap },
+  ];
   return (
     <Card>
       <div className="h1 disp">AI Summary <span className="demobadge" style={{ marginLeft: 8, verticalAlign: "middle" }}>{periodLabel}</span></div>
-      <div className="ins">
-        <div className="oitem" onClick={() => jumpTo("kanalen")}>
-          <div className="oic">{Up}</div>
-          <div>
-            <div className="ot">Belangrijkste kanaal: {s.topCh?.n}, {fmtInt(s.topCh?.u || 0)} bezoekers en {fmtInt(s.topCh?.c || 0)} conversies</div>
-            <div className="od">kanaal / bekijk tabel</div>
+      <div className="oitems">
+        {items.map((it, i) => (
+          <div className="oitem" key={i} onClick={it.go}>
+            <div className="oic">{it.ic}</div>
+            <div>
+              <div className="ot">{it.ot}</div>
+              <div className="od">{it.od}</div>
+            </div>
           </div>
-        </div>
-        <div className="oitem" onClick={() => jumpTo("campagnes")}>
-          <div className="oic">{Up}</div>
-          <div>
-            <div className="ot">Belangrijkste campagne: {s.topCa?.n || "geen"}, {fmtInt(s.topCa?.s || 0)} sessies</div>
-            <div className="od">campagne / bekijk tabel</div>
-          </div>
-        </div>
-        <div className="oitem" onClick={() => jumpTo("landingspaginas")}>
-          <div className="oic">{Up}</div>
-          <div>
-            <div className="ot">Meest bezochte landingspagina: {s.topLp?.n}, {fmtInt(s.topLp?.s || 0)} sessies</div>
-            <div className="od">landingspagina / bekijk tabel</div>
-          </div>
-        </div>
-        <div className="oitem" onClick={jumpMap}>
-          <div className="oic">{Up}</div>
-          <div>
-            <div className="ot">Sterkste markt: {s.topLand?.name || "onbekend"}, {fmtInt(s.topLand?.value || 0)} sessies{s.topLand?.e != null ? ", " + s.topLand.e + "% betrokken" : ""}</div>
-            <div className="od">locatie / bekijk kaart</div>
-          </div>
-        </div>
+        ))}
       </div>
     </Card>
   );
