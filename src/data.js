@@ -222,20 +222,20 @@ export function demoData(period = "maand", compare = "prev") {
       { key: "aankoop", name: "Aankoop", value: Math.round(622 * f), source: "schatting", note: "Afgeronde aanvragen, oftewel nieuwe klanten." },
     ],
     flow: {
-      nodes: [{ name: "Sessies" }, { name: "/home" }, { name: "/aanbod" }, { name: "/aanvragen" }, { name: "/broodfonds-vs-aov" }, { name: "Conversie" }, { name: "Exit" }],
+      nodes: [{ name: "Sessies" }, { name: "/home" }, { name: "/aanbod" }, { name: "/aanvragen" }, { name: "/blog" }, { name: "Conversie" }, { name: "Exit" }],
       links: [
         { source: "Sessies", target: "/home", value: Math.round(6400 * f) },
         { source: "Sessies", target: "/aanbod", value: Math.round(4200 * f) },
         { source: "Sessies", target: "/aanvragen", value: Math.round(2600 * f) },
-        { source: "Sessies", target: "/broodfonds-vs-aov", value: Math.round(1700 * f) },
+        { source: "Sessies", target: "/blog", value: Math.round(1700 * f) },
         { source: "/home", target: "Conversie", value: Math.round(120 * f) },
         { source: "/home", target: "Exit", value: Math.round(6280 * f) },
         { source: "/aanbod", target: "Conversie", value: Math.round(180 * f) },
         { source: "/aanbod", target: "Exit", value: Math.round(4020 * f) },
         { source: "/aanvragen", target: "Conversie", value: Math.round(280 * f) },
         { source: "/aanvragen", target: "Exit", value: Math.round(2320 * f) },
-        { source: "/broodfonds-vs-aov", target: "Conversie", value: Math.round(42 * f) },
-        { source: "/broodfonds-vs-aov", target: "Exit", value: Math.round(1658 * f) },
+        { source: "/blog", target: "Conversie", value: Math.round(42 * f) },
+        { source: "/blog", target: "Exit", value: Math.round(1658 * f) },
       ],
     },
     demografie: null,
@@ -243,40 +243,40 @@ export function demoData(period = "maand", compare = "prev") {
   };
 }
 
-// Trends: brand keywords voor zelfstandigondernemers.nl.
-// LET OP: geschatte volumes, geen live bron. Vervang fetchKeywords() zodra Ahrefs/DataForSEO gekoppeld is.
+// Trends: demo brand keywords.
+// LET OP: geschatte volumes, geen live bron.
 export const KEYWORDS_ESTIMATED = true;
 export const KEYWORDS = [
-  { k: "aov zzp", v: 14800, c: 22 },
-  { k: "arbeidsongeschiktheidsverzekering zzp", v: 9900, c: 18 },
-  { k: "verplichte aov zzp", v: 8100, c: 64 },
-  { k: "aov verplicht 2027", v: 6600, c: 85 },
-  { k: "broodfonds", v: 5400, c: -6 },
-  { k: "aov kosten zzp", v: 4400, c: 15 },
-  { k: "aov vergelijken", v: 3600, c: 9 },
-  { k: "aov alternatieven zzp", v: 2900, c: 31 },
-  { k: "zelfstandigondernemers.nl", v: 1900, c: 12 },
-  { k: "crowdsurance", v: 1300, c: -14 },
+  { k: "product kopen", v: 12400, c: 19 },
+  { k: "merknaam", v: 8800, c: 14 },
+  { k: "product vergelijken", v: 6900, c: 27 },
+  { k: "beste product 2026", v: 5400, c: 42 },
+  { k: "product review", v: 4700, c: 8 },
+  { k: "product prijs", v: 3900, c: 12 },
+  { k: "product alternatieven", v: 2800, c: 24 },
+  { k: "merknaam korting", v: 2200, c: 31 },
+  { k: "product ervaringen", v: 1700, c: -4 },
+  { k: "product aanbieding", v: 1300, c: -9 },
 ];
 
 export const SUBREDDITS = [
-  { n: "r/zzp", m: 38, d: "+9 t.o.v. vorige maand" },
-  { n: "r/ondernemers", m: 24, d: "+6" },
-  { n: "r/geldzaken", m: 17, d: "+3" },
-  { n: "r/DutchFIRE", m: 11, d: "-2" },
-  { n: "r/thenetherlands", m: 8, d: "+1" },
+  { n: "r/Netherlands", m: 31, d: "+7 t.o.v. vorige maand" },
+  { n: "r/marketing", m: 22, d: "+4" },
+  { n: "r/smallbusiness", m: 16, d: "+2" },
+  { n: "r/Entrepreneur", m: 12, d: "-1" },
+  { n: "r/reviews", m: 7, d: "+1" },
 ];
 
 export const SPLIT_PRODUCT = [
-  { n: "AOV Compleet", c: 286, w: 9840 },
-  { n: "AOV Instap", c: 214, w: 6120 },
-  { n: "AOV Flex", c: 122, w: 4680 },
+  { n: "Product A", c: 286, w: 9840 },
+  { n: "Product B", c: 214, w: 6120 },
+  { n: "Product C", c: 122, w: 4680 },
 ];
 export const SPLIT_BEROEP = [
-  { n: "Bouw", c: 178, w: 6420 },
-  { n: "Zorg", c: 136, w: 4380 },
-  { n: "IT en creatief", c: 152, w: 5110 },
-  { n: "Transport", c: 74, w: 2350 },
+  { n: "Segment 1", c: 178, w: 6420 },
+  { n: "Segment 2", c: 136, w: 4380 },
+  { n: "Segment 3", c: 152, w: 5110 },
+  { n: "Segment 4", c: 74, w: 2350 },
   { n: "Overig", c: 82, w: 2380 },
 ];
 
@@ -296,14 +296,17 @@ export const CITIES = [
   { name: "Eindhoven", value: [5.4697, 51.4416, 480] },
 ];
 
-export const CLIENTS = [{ name: "Demo", id: "283274237" }];
+export const CLIENTS = [{ name: "Demo", id: "demo" }];
+
+// Demo-branch: nooit echte klantdata tonen
+export const FORCE_DEMO = true;
 
 // Merk van de klant voor de brandbalk. logo:null gebruikt de wordmark van de initialen.
 export const BRAND = {
-  name: "Zelfstandig Ondernemers",
-  site: "zelfstandigondernemers.nl",
-  logo: "/zo-logo.png",
-  tagline: "Crowdsurance voor ondernemers",
+  name: "Demo Brand",
+  site: "demobrand.nl",
+  logo: null,
+  tagline: "Product voor doelgroep",
   description: "Strategie, beheer en optimalisatie van performance media",
 };
 
