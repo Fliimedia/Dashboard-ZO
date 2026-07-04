@@ -45,7 +45,7 @@ export default function Result({ data, filter, goTrends }) {
     const m = METRIC[metric];
     const vals = days.map((d) => d[m.key] ?? 0);
     const line = new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-      { offset: 0, color: "rgba(28,46,112,.28)" }, { offset: 1, color: "rgba(28,46,112,0)" }]);
+      { offset: 0, color: "rgba(230,0,126,.28)" }, { offset: 1, color: "rgba(230,0,126,0)" }]);
     return {
       grid: { left: 40, right: 12, top: 12, bottom: 22 },
       tooltip: { ...TT, trigger: "axis", formatter: (p) => {
@@ -354,7 +354,7 @@ function MapCard({ countries, cities }) {
   const max = Math.max(...countries.map((c) => c.value), 1);
   const regions = countries.map((c) => ({
     name: c.name,
-    itemStyle: { areaColor: "rgba(28,46,112," + (0.10 + (c.value / max) * 0.55).toFixed(2) + ")" },
+    itemStyle: { areaColor: "rgba(230,0,126," + (0.10 + (c.value / max) * 0.55).toFixed(2) + ")" },
   }));
 
   const option = useMemo(() => ({
@@ -369,13 +369,13 @@ function MapCard({ countries, cities }) {
     } },
     geo: { map: "world", roam: true, center: VIEWS[view].center, zoom: VIEWS[view].zoom,
       itemStyle: { areaColor: "rgba(20,16,25,.05)", borderColor: "rgba(20,16,25,.16)", borderWidth: 0.5 },
-      emphasis: { label: { show: false }, itemStyle: { areaColor: "rgba(28,46,112,.26)" } },
+      emphasis: { label: { show: false }, itemStyle: { areaColor: "rgba(230,0,126,.26)" } },
       select: { disabled: true }, regions, scaleLimit: { min: 1, max: 60 } },
     series: [{ name: "steden", type: "effectScatter", coordinateSystem: "geo",
       data: view === "land" ? cityData : [],
       symbolSize: (v) => 6 + v[2] / 220,
       rippleEffect: { scale: 2.4, brushType: "stroke" },
-      itemStyle: { color: COLORS.magenta, shadowColor: "rgba(28,46,112,.5)", shadowBlur: 8 },
+      itemStyle: { color: COLORS.magenta, shadowColor: "rgba(230,0,126,.5)", shadowBlur: 8 },
       label: { show: false } }],
   }), [view, mapReady, cityData]);
 
