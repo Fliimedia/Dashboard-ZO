@@ -8,6 +8,7 @@ const METRICS6 = [
 
 // Periodefilter: aantal dagen per periode, en het vergelijkingsvenster
 export const PERIOD_DAYS = { week: 7, maand: 30, kwartaal: 90, jaar: 365 };
+export const PERIOD_LABEL = { week: "afgelopen 7 dagen", maand: "afgelopen 30 dagen", kwartaal: "afgelopen 90 dagen", jaar: "afgelopen 12 maanden" };
 
 function ranges(period, compare) {
   const n = PERIOD_DAYS[period] || 30;
