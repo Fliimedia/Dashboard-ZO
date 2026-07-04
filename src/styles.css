@@ -58,8 +58,7 @@ body{margin:0;font-family:'Inter',system-ui,sans-serif;color:var(--ink);-webkit-
 .seg button.on{background:var(--magenta);color:#fff}
 
 .kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));padding:10px 4px}
-.kpi{padding:2px 12px;border-left:1px solid var(--stroke);min-width:0}
-.kpi:first-child{border-left:none}
+.kpi{padding:2px 12px;min-width:0}
 .kpi.kclick{cursor:pointer;border-radius:10px;transition:background .15s}
 .kpi.kclick:hover{background:var(--inset)}
 .kpi.kon{background:rgba(230,0,126,.08)}
@@ -266,3 +265,8 @@ tr.click{cursor:pointer}
 .fliifoot{display:flex;justify-content:flex-end;align-items:center;gap:9px;padding:8px 4px 0;
   font-family:'IBM Plex Mono';font-size:10px;letter-spacing:.05em;color:var(--mist)}
 .fliifoot .brandmark{box-shadow:none}
+
+.oitems{margin-top:14px;display:flex;flex-direction:column;gap:3px}
+.oic svg{width:12px;height:12px}
+.chips{margin-top:14px}
+.genwrap .btn{margin-bottom:14px}
