@@ -3,7 +3,7 @@ import * as echarts from "echarts";
 import Chart from "../components/Chart.jsx";
 import { Card, Seg, fmtInt, fmtDur, fmtPctDelta } from "../components/ui.jsx";
 import { AX, TT, SPLIT, COLORS } from "../echartsSetup.js";
-import { KEYWORDS, SPLIT_PRODUCT, SPLIT_BEROEP, CITIES } from "../data.js";
+import { CITIES } from "../data.js";
 import { getTargets } from "../targets.js";
 
 const DIM_LABELS = { kanalen: "Kanalen", campagnes: "Campagnes", landingspaginas: "Landingspagina's" };
@@ -16,6 +16,8 @@ export default function Result({ data, filter, goTrends }) {
   const [dimKey, setDimKey] = useState("kanalen");
   const [metric, setMetric] = useState("s"); // s=sessies, u=gebruikers, e=engagement
   const tableRef = useRef(null);
+  const mapRef = useRef(null);
+  function jumpMap() { setTimeout(() => mapRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 50); }
   const cmp = COMPARE_LABEL[filter.compare];
 
   // AI Summary: hoogtepunten uit de data
@@ -23,9 +25,9 @@ export default function Result({ data, filter, goTrends }) {
     const topCh = [...dims.kanalen].sort((a, b) => b.s - a.s)[0];
     const topCa = [...dims.campagnes].sort((a, b) => b.s - a.s)[0];
     const topLp = [...dims.landingspaginas].sort((a, b) => b.s - a.s)[0];
-    const topKw = [...KEYWORDS].sort((a, b) => b.c - a.c)[0];
-    return { topCh, topCa, topLp, topKw };
-  }, [dims]);
+    const topLand = countries && countries[0];
+    return { topCh, topCa, topLp, topLand };
+  }, [dims, countries]);
 
   function jumpTo(key) {
     setDimKey(key);
@@ -65,7 +67,7 @@ export default function Result({ data, filter, goTrends }) {
 
   return (
     <div className="view">
-      <AISummary s={summary} kpis={kpis} jumpTo={jumpTo} goTrends={goTrends} />
+      <AISummary s={summary} kpis={kpis} jumpTo={jumpTo} jumpMap={jumpMap} />
 
       <div className="ctrlrow">
         <Seg value={filter.period} onChange={filter.setPeriod} options={[
@@ -117,50 +119,68 @@ export default function Result({ data, filter, goTrends }) {
       </div>
 
       <div className="r4">
-        <MapCard countries={countries} cities={data.cities} />
-        <Card>
-          <div className="h1 disp">Demografie</div>
-          <div className="h2">Leeftijd en geslacht</div>
-          <div className="demrow">
-            <Chart height={176} style={{ flex: 1 }} option={{
-              grid: { left: 44, right: 26, top: 4, bottom: 4 },
-              tooltip: { ...TT, trigger: "axis", axisPointer: { type: "none" }, formatter: "{b}: {c}%" },
-              xAxis: { type: "value", splitLine: { show: false }, axisLabel: { show: false }, axisLine: { show: false }, axisTick: { show: false } },
-              yAxis: { ...AX, type: "category", data: ["65+", "55-64", "45-54", "35-44", "25-34", "18-24"], axisLine: { show: false } },
-              series: [{ type: "bar", data: [6, 10, 15, 24, 31, 14], barWidth: 11,
-                label: { show: true, position: "right", color: "#6E6879", fontFamily: "IBM Plex Mono", fontSize: 9, formatter: "{c}%" },
-                itemStyle: { borderRadius: [0, 6, 6, 0],
-                  color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [
-                    { offset: 0, color: COLORS.violet }, { offset: 1, color: COLORS.magenta }]) } }],
-            }} />
-            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8, flex: "none" }}>
-              <Chart height={104} style={{ width: 104 }} option={{
-                tooltip: { ...TT, trigger: "item", formatter: "{b}: {c}%" },
-                series: [{ type: "pie", radius: ["62%", "86%"],
-                  itemStyle: { borderColor: "#fff", borderWidth: 2 }, label: { show: false },
-                  data: [
-                    { name: "Vrouw", value: 54, itemStyle: { color: COLORS.magenta } },
-                    { name: "Man", value: 43, itemStyle: { color: COLORS.violet } },
-                    { name: "Onbekend", value: 3, itemStyle: { color: COLORS.dim } },
-                  ] }],
-              }} />
-              <div className="glegend">
-                <div className="g"><span className="swatch" style={{ background: COLORS.magenta }} />Vrouw 54%</div>
-                <div className="g"><span className="swatch" style={{ background: COLORS.violet }} />Man 43%</div>
-                <div className="g"><span className="swatch" style={{ background: COLORS.dim }} />Onbekend 3%</div>
-              </div>
-            </div>
-          </div>
-        </Card>
+        <div ref={mapRef} style={{ scrollMarginTop: 12, minWidth: 0 }}><MapCard countries={countries} cities={data.cities} /></div>
+        <DemografieCard demografie={data.demografie} />
       </div>
     </div>
   );
 }
 
-function AISummary({ s, kpis, jumpTo, goTrends }) {
+function DemografieCard({ demografie }) {
+  if (!demografie) {
+    return (
+      <Card>
+        <div className="h1 disp">Demografie</div>
+        <div className="h2">Leeftijd en geslacht</div>
+        <div className="mapmsg" style={{ height: 140, textAlign: "center", padding: "0 14px" }}>
+          Nog geen demografische data beschikbaar. Zet Google Signals aan op de GA4-property; zodra Google voldoende data heeft, verschijnt dit automatisch.
+        </div>
+      </Card>
+    );
+  }
+  const total = demografie.gender.reduce((a, b) => a + b.v, 0) || 1;
+  const GCOL = { male: COLORS.magenta, female: COLORS.magenta2 };
+  return (
+    <Card>
+      <div className="h1 disp">Demografie</div>
+      <div className="h2">Leeftijd en geslacht, uit GA4</div>
+      <div className="demrow">
+        <Chart height={176} style={{ flex: 1 }} option={{
+          grid: { left: 44, right: 26, top: 4, bottom: 4 },
+          tooltip: { ...TT, trigger: "axis", axisPointer: { type: "none" } },
+          xAxis: { type: "value", splitLine: { show: false }, axisLabel: { show: false }, axisLine: { show: false }, axisTick: { show: false } },
+          yAxis: { ...AX, type: "category", data: demografie.age.map((a) => a.n).reverse(), axisLine: { show: false } },
+          series: [{ type: "bar", data: demografie.age.map((a) => a.v).reverse(), barWidth: 11,
+            label: { show: true, position: "right", color: "#5B6685", fontFamily: "IBM Plex Mono", fontSize: 9 },
+            itemStyle: { borderRadius: [0, 6, 6, 0],
+              color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [
+                { offset: 0, color: COLORS.violet }, { offset: 1, color: COLORS.magenta }]) } }],
+        }} />
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8, flex: "none" }}>
+          <Chart height={104} style={{ width: 104 }} option={{
+            tooltip: { ...TT, trigger: "item" },
+            series: [{ type: "pie", radius: ["62%", "86%"],
+              itemStyle: { borderColor: "#fff", borderWidth: 2 }, label: { show: false },
+              data: demografie.gender.map((g) => ({ name: g.n, value: g.v, itemStyle: { color: GCOL[g.n] || COLORS.dim } })) }],
+          }} />
+          <div className="glegend">
+            {demografie.gender.map((g) => (
+              <div className="g" key={g.n}>
+                <span className="swatch" style={{ background: GCOL[g.n] || COLORS.dim }} />
+                {g.n === "male" ? "Man" : g.n === "female" ? "Vrouw" : g.n} {Math.round((g.v / total) * 100)}%
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </Card>
+  );
+}
+
+function AISummary({ s, kpis, jumpTo, jumpMap }) {
   const Up = <svg viewBox="0 0 24 24"><path d="M12 19V5M6 11l6-6 6 6" /></svg>;
   return (
-    <Card className="hlcard">
+    <Card>
       <div className="h1 disp">AI Summary</div>
       <div className="ins">
         <div className="oitem" onClick={() => jumpTo("kanalen")}>
@@ -184,11 +204,11 @@ function AISummary({ s, kpis, jumpTo, goTrends }) {
             <div className="od">landingspagina / bekijk tabel</div>
           </div>
         </div>
-        <div className="oitem" onClick={goTrends}>
+        <div className="oitem" onClick={jumpMap}>
           <div className="oic">{Up}</div>
           <div>
-            <div className="ot">Meest toegenomen trend: "{s.topKw?.k}", +{s.topKw?.c}% zoekvolume</div>
-            <div className="od">trend / open Trends</div>
+            <div className="ot">Sterkste markt: {s.topLand?.name || "onbekend"}, {fmtInt(s.topLand?.value || 0)} sessies{s.topLand?.e != null ? ", " + s.topLand.e + "% betrokken" : ""}</div>
+            <div className="od">locatie / bekijk kaart</div>
           </div>
         </div>
       </div>
@@ -256,15 +276,14 @@ function FlowCard({ kpis, dims, flow, funnel }) {
     }],
   };
 
-  // Funnel: 4 stappen uit GA4-events indien beschikbaar, anders afgeleid
-  const steps = funnel || [
+  // Funnel: uitsluitend stappen die echt uit GA komen; geschatte stappen tonen we niet
+  const allSteps = funnel || [
     { key: "sessie", name: "Sessie", value: s, source: "sessions", note: "Alle sessies in de periode." },
-    { key: "lead", name: "Lead / brochure", value: Math.round(s * 0.18), source: "schatting", note: "Eerste blijk van interesse." },
-    { key: "aanvraag", name: "Bezoek /aanvragen", value: Math.round(s * 0.08), source: "schatting", note: "Serieuze intentie." },
     { key: "aankoop", name: "Aankoop", value: conv, source: "keyEvents", note: "Nieuwe klanten." },
   ];
+  const steps = allSteps.filter((x) => x.source !== "schatting");
+  const hidden = allSteps.length - steps.length;
   const COLS = [COLORS.magenta, COLORS.magenta2, COLORS.violet, COLORS.deepviolet];
-  const anyEstimate = steps.some((x) => x.source === "schatting");
   const funnelOption = {
     tooltip: { ...TT, trigger: "item", formatter: (p) => p.name + ": " + fmtInt(p.value) },
     series: [{ type: "funnel", funnelAlign: "center", orient: "horizontal",
@@ -291,7 +310,7 @@ function FlowCard({ kpis, dims, flow, funnel }) {
         </>
       ) : (
         <>
-          <div className="h2">Van sessie naar klant, vier stappen{anyEstimate ? " (deels geschat)" : ""}</div>
+          <div className="h2">Van sessie naar klant</div>
           <Chart option={funnelOption} height={132} onClick={(p) => {
             const f = steps.find((x) => x.name === p.name); if (f) setFpick(f);
           }} />
@@ -302,19 +321,7 @@ function FlowCard({ kpis, dims, flow, funnel }) {
             <div className="fstat"><div className="fl">Conversieratio</div><div className="fv disp">{rate.toFixed(1).replace(".", ",")}%</div></div>
             <div className="fstat"><div className="fl">Gem. waarde p. klant</div><div className="fv disp">&euro;{fmtInt(avgValue)}</div></div>
           </div>
-          <table className="compact" style={{ marginTop: 10 }}>
-            <thead><tr><th>Product</th><th className="num">Conv.</th><th className="num">Waarde</th></tr></thead>
-            <tbody>{SPLIT_PRODUCT.map((r) => (
-              <tr key={r.n}><td>{r.n}</td><td className="num mono">{fmtInt(r.c)}</td><td className="num mono">&euro;{fmtInt(r.w)}</td></tr>
-            ))}</tbody>
-          </table>
-          <table className="compact" style={{ marginTop: 10 }}>
-            <thead><tr><th>Beroep</th><th className="num">Conv.</th><th className="num">Waarde</th></tr></thead>
-            <tbody>{SPLIT_BEROEP.map((r) => (
-              <tr key={r.n}><td>{r.n}</td><td className="num mono">{fmtInt(r.c)}</td><td className="num mono">&euro;{fmtInt(r.w)}</td></tr>
-            ))}</tbody>
-          </table>
-          <div className="maphint">Product en beroep vereisen custom dimensions op het formulier en zijn nu placeholder.</div>
+          {hidden > 0 && <div className="maphint">{hidden} tussenstap{hidden > 1 ? "pen" : ""} (lead, aanvraag) verschijn{hidden > 1 ? "en" : "t"} zodra de site deze GA4-events stuurt.</div>}
         </>
       )}
     </Card>
