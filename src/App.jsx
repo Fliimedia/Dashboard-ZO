@@ -173,7 +173,7 @@ export default function App() {
     <>
       <div className="frame">
         <div className="rail">
-          <div className="railbrand"><BrandMark /></div>
+          <div className="railbrand"><div className="oslogo disp">OS</div></div>
           {TABS.map((t) => (
             <div key={t.id} className={"ritm" + (tab === t.id ? " on" : "")} title={t.label} onClick={() => setTab(t.id)}>
               {IC[t.id]}
@@ -186,13 +186,13 @@ export default function App() {
 
         <div className="mainc">
           <div className="mobilehead">
-            <BrandMark size={34} />
+            <div className="applogo disp">Performance OS</div>
             <SearchBox placeholder="Zoeken" onGo={setTab} />
             <AcctWordmark onClick={() => setTab("profile")} />
           </div>
           <div className="topbar">
             <div className="crumbs">
-              <div className="path">Pagina's / <b>{title}</b></div>
+              <div className="applogo disp">Performance OS</div>
               <div className="title">{title}</div>
             </div>
             <SearchBox placeholder="Typ hier..." onGo={setTab} />
@@ -204,11 +204,15 @@ export default function App() {
 
           {tab === "result" && <Result data={d} filter={filter} goTrends={() => setTab("trends")} />}
           {tab === "trends" && <Trends />}
-          {tab === "insights" && <Insights data={d} />}
-          {tab === "action" && <Action data={d} />}
+          {tab === "insights" && <Insights data={d} period={period} compare={compare} />}
+          {tab === "action" && <Action data={d} period={period} />}
           {tab === "forecast" && <Forecast data={d} />}
           {tab === "settings" && <Settings />}
           {tab === "profile" && <Profile />}
+          <div className="fliifoot">
+            <span>let's Ignite ambitions</span>
+            <BrandMark size={26} />
+          </div>
         </div>
       </div>
 
