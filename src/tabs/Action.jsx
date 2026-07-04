@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { Card } from "../components/ui.jsx";
+import { PERIOD_LABEL } from "../data.js";
 
 const KEY = "pos_action_state";
 
@@ -10,7 +11,8 @@ function saveState(s) {
   try { localStorage.setItem(KEY, JSON.stringify(s)); } catch {}
 }
 
-export default function Action({ data }) {
+export default function Action({ data, period = "maand" }) {
+  const plabel = PERIOD_LABEL[period] || "deze periode";
   const { kpis, dims } = data;
   const [state, setState] = useState(loadState);
 
@@ -29,7 +31,7 @@ export default function Action({ data }) {
       { id: "utm", t: "UTM-tagging controleren op alle campagnes",
         d: "Zorg dat elke campagne UTM-tags voert, zodat de campagne-tabel compleet en betrouwbaar blijft." },
       { id: "target", t: "Dagtarget verhogen zodra het twee weken wordt gehaald",
-        d: "Conversies staan op " + (kpis.cur.c || 0) + " deze periode. Verhoog het dagtarget pas als het huidige target twee weken op rij wordt gehaald." },
+        d: "Conversies staan op " + (kpis.cur.c || 0) + " in de periode. Verhoog het dagtarget pas als het huidige target twee weken op rij wordt gehaald." },
     ];
   }, [dims, kpis]);
 
@@ -56,7 +58,7 @@ export default function Action({ data }) {
     <div className="view">
       <Card>
         <div className="h1 disp">Vervolgacties</div>
-        <div className="h2">Keur acties goed of af en geef feedback, {open.length} open van {actions.length}</div>
+        <div className="h2">Uit de cijfers van de {plabel}, {open.length} open van {actions.length}</div>
         {actions.map((a) => {
           const st = state[a.id] || {};
           return (
