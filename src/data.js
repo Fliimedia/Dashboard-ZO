@@ -41,6 +41,8 @@ export function buildReports(period = "maand", compare = "prev") {
     { dateRanges: [{ startDate: "730daysAgo", endDate: "366daysAgo" }], metrics: METRICS6 },  // yoy base
     { dateRanges: cur, dimensions: [{ name: "eventName" }], metrics: [{ name: "eventCount" }], orderBys: [{ metric: { metricName: "eventCount" }, desc: true }], limit: 25 }, // funnel-events
     { dateRanges: cur, dimensions: [{ name: "pagePath" }], metrics: [{ name: "screenPageViews" }, { name: "keyEvents" }], orderBys: [{ metric: { metricName: "screenPageViews" }, desc: true }], limit: 12 }, // flow
+    { dateRanges: cur, dimensions: [{ name: "userAgeBracket" }], metrics: [{ name: "sessions" }], limit: 10 }, // demografie leeftijd (vereist Signals)
+    { dateRanges: cur, dimensions: [{ name: "userGender" }], metrics: [{ name: "sessions" }], limit: 5 },      // demografie geslacht (vereist Signals)
   ];
 }
 
@@ -102,7 +104,11 @@ export async function fetchData(propertyId, period = "maand", compare = "prev") 
   const pages = (reps[15]?.rows || []).map((r) => ({ p: dim(r, 0), views: num(r, 0), conv: num(r, 1) }));
   const flow = buildFlow(kpis.cur, pages);
 
-  return { live: true, kpis, days, dims, countries, cities: cities.length ? cities : null, periods, funnel, flow, eventsFound: Object.keys(events).length > 0 };
+  // Demografie alleen als GA (Signals) echt data teruggeeft
+  const age = (reps[16]?.rows || []).map((r) => ({ n: dim(r, 0), v: num(r, 0) })).filter((x) => x.n && x.n !== "unknown");
+  const gender = (reps[17]?.rows || []).map((r) => ({ n: dim(r, 0), v: num(r, 0) })).filter((x) => x.n && x.n !== "unknown");
+  const demografie = (age.length || gender.length) ? { age, gender } : null;
+  return { live: true, kpis, days, dims, countries, cities: cities.length ? cities : null, periods, funnel, flow, demografie, eventsFound: Object.keys(events).length > 0 };
 }
 
 // Bouw een 4-staps funnel uit GA4-events, met afgeleide terugval per stap.
@@ -232,6 +238,7 @@ export function demoData(period = "maand", compare = "prev") {
         { source: "/broodfonds-vs-aov", target: "Exit", value: Math.round(1658 * f) },
       ],
     },
+    demografie: null,
     eventsFound: false,
   };
 }
