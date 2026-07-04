@@ -197,7 +197,6 @@ export default function App() {
               <div className="title">{title}</div>
             </div>
             <SearchBox placeholder="Typ hier..." onGo={setTab} />
-            {!d.live && <span className="demobadge">demo data</span>}
             <AcctWordmark onClick={() => setTab("profile")} />
           </div>
 
