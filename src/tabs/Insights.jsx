@@ -55,7 +55,7 @@ export default function Insights({ data, period = "maand", compare = "prev" }) {
             <div className="h1 disp">Genereer rapport</div>
             <div className="h2">Realtime analyse over de {plabel}</div>
           </div>
-          <button className="btn" onClick={generate} disabled={busy}>{busy ? "Bezig..." : "Genereer rapport"}</button>
+          <button className="btn" style={{ marginBottom: 14 }} onClick={generate} disabled={busy}>{busy ? "Bezig..." : "Genereer rapport"}</button>
         </div>
         <textarea className="rinput" placeholder="Eigen input, zoals context of focuspunten voor de analyse"
           value={ctx} onChange={(e) => onCtx(e.target.value)} />
