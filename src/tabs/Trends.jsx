@@ -33,9 +33,9 @@ function volFor(kw, period) {
 
 const REDDIT_T = { alltime: "all", jaar: "year", maand: "month", dag: "day" };
 const DEMO_POSTS = [
-  { t: "Verplichte AOV komt eraan, wat betekent dit voor jullie premie?", sub: "r/zzp", score: 1240, com: 318, url: "https://www.reddit.com/r/zzp" },
-  { t: "AOV tegenover broodfonds tegenover zelf sparen, mijn vergelijking na 3 jaar", sub: "r/ondernemers", score: 890, com: 204, url: "https://www.reddit.com/r/ondernemers" },
-  { t: "Welke AOV-aanbieder keert echt uit? Ervaringen gezocht", sub: "r/geldzaken", score: 512, com: 96, url: "https://www.reddit.com/r/geldzaken" },
+  { t: "Wat is jullie ervaring met dit merk? Verrast door de kwaliteit", sub: "r/Netherlands", score: 1240, com: 318, url: "https://www.reddit.com/r/Netherlands" },
+  { t: "Vergelijking: dit product tegenover de twee grootste concurrenten", sub: "r/reviews", score: 890, com: 204, url: "https://www.reddit.com/r/reviews" },
+  { t: "Kortingscode gezocht, waar vinden jullie de beste deals?", sub: "r/marketing", score: 512, com: 96, url: "https://www.reddit.com/r/marketing" },
 ];
 
 export default function Trends() {
@@ -59,7 +59,7 @@ export default function Trends() {
       lineStyle: { width: 3, color: COLORS.magenta },
       itemStyle: { color: COLORS.magenta },
       areaStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-        { offset: 0, color: "rgba(28,46,112,.24)" }, { offset: 1, color: "rgba(28,46,112,0)" }]) },
+        { offset: 0, color: "rgba(230,0,126,.24)" }, { offset: 1, color: "rgba(230,0,126,0)" }]) },
     }],
   }), [labels, values, kw]);
 
@@ -96,7 +96,7 @@ export default function Trends() {
         <div className="hrow">
           <div>
             <div className="h1 disp">Brand keywords</div>
-            <div className="h2">Klik een keyword voor het zoekvolume, 10 kernwoorden voor zelfstandigondernemers.nl{KEYWORDS_ESTIMATED && <span className="demobadge" style={{ marginLeft: 8 }}>geschat</span>}</div>
+            <div className="h2">Klik een keyword voor het zoekvolume, 10 kernwoorden van het merk{KEYWORDS_ESTIMATED && <span className="demobadge" style={{ marginLeft: 8 }}>geschat</span>}</div>
           </div>
           <Seg value={period} onChange={setPeriod} options={[
             { value: "maand", label: "Maand" }, { value: "kwartaal", label: "Kwartaal" }, { value: "jaar", label: "Jaar" },
