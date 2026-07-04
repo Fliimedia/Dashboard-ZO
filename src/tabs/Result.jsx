@@ -67,8 +67,6 @@ export default function Result({ data, filter, goTrends }) {
 
   return (
     <div className="view">
-      <AISummary s={summary} kpis={kpis} jumpTo={jumpTo} jumpMap={jumpMap} periodLabel={PERIOD_LABEL[filter.period]} />
-
       <div className="ctrlrow">
         <Seg value={filter.period} onChange={filter.setPeriod} options={[
           { value: "jaar", label: "J" }, { value: "kwartaal", label: "K" },
@@ -238,6 +236,59 @@ function KpiStrip({ kpis, metric, setMetric }) {
   );
 }
 
+const FUNNEL5 = [
+  { k: "Sessie", v: 14912, note: "Alle sessies in de periode, de bovenkant van de funnel." },
+  { k: "Interactie", v: 8200, note: "Sessies met betrokkenheid: scrollen, klikken of meerdere pagina's." },
+  { k: "Start aanvraag", v: 3100, note: "Bezoekers die de aanvraagpagina openen of het formulier starten." },
+  { k: "Aanvraag", v: 1450, note: "Ingevulde aanvragen, een serieuze intentie." },
+  { k: "Conversie", v: 622, note: "Afgeronde aanvragen, oftewel nieuwe klanten." },
+];
+
+function BowtieFunnel({ avgValue }) {
+  const [pick, setPick] = useState(null);
+  const stages = FUNNEL5, N = stages.length;
+  const W = 1000, cy = 112, segW = W / N, gap = 9;
+  const vmax = stages[0].v;
+  const hAt = (v) => 12 + 92 * (v / vmax);
+  const hs = stages.map((s) => hAt(s.v));
+  const endH = 9;
+  const conv = ((stages[N - 1].v / stages[0].v) * 100).toFixed(1).replace(".", ",");
+  const toReq = ((stages[3].v / stages[0].v) * 100).toFixed(1).replace(".", ",");
+  return (
+    <>
+      <div className="h2">Van sessie naar klant, voorbeelddata</div>
+      <svg className="bowtie" viewBox="0 0 1000 280" role="img" aria-label="Funnel van sessie naar conversie">
+        <defs>
+          <linearGradient id="bowFill" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0" stopColor="#DA3E68" /><stop offset="1" stopColor="#8E1B3D" />
+          </linearGradient>
+        </defs>
+        {stages.map((st, i) => {
+          const xL = i * segW + gap / 2, xR = (i + 1) * segW - gap / 2, cx = (xL + xR) / 2;
+          const hL = hs[i], hR = i < N - 1 ? hs[i + 1] : endH;
+          const pts = `${xL},${cy - hL} ${xR},${cy - hR} ${xR},${cy + hR} ${xL},${cy + hL}`;
+          return (
+            <g key={i} className={"bseg" + (pick === i ? " on" : "")} onClick={() => setPick(i)} role="button" tabIndex={0}
+               onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setPick(i); } }}>
+              <polygon points={pts} />
+              <text className="blbl" x={cx} y={244} textAnchor="middle">{st.k}</text>
+              <text className="bval" x={cx} y={263} textAnchor="middle">{fmtInt(st.v)}</text>
+            </g>
+          );
+        })}
+      </svg>
+      {pick != null
+        ? <div className="fnote"><b>{stages[pick].k}, {fmtInt(stages[pick].v)}.</b> {stages[pick].note} <span className="demobadge" style={{ marginLeft: 6 }}>voorbeeld</span></div>
+        : <div className="fnote" style={{ color: "var(--mist)" }}>Tik op een stap voor uitleg.</div>}
+      <div className="fstats">
+        <div className="fstat"><div className="fl">Conversieratio</div><div className="fv disp">{conv}%</div></div>
+        <div className="fstat"><div className="fl">Sessie naar aanvraag</div><div className="fv disp">{toReq}%</div></div>
+        <div className="fstat"><div className="fl">Gem. waarde p. klant</div><div className="fv disp">&euro;{fmtInt(avgValue || 332)}</div></div>
+      </div>
+    </>
+  );
+}
+
 // Userflow en funnel in een kaart met toggle
 function FlowCard({ kpis, dims, flow, funnel }) {
   const [mode, setMode] = useState("flow");
@@ -309,20 +360,7 @@ function FlowCard({ kpis, dims, flow, funnel }) {
           <Chart option={flowOption} height={216} />
         </>
       ) : (
-        <>
-          <div className="h2">Van sessie naar klant</div>
-          <Chart option={funnelOption} height={132} onClick={(p) => {
-            const f = steps.find((x) => x.name === p.name); if (f) setFpick(f);
-          }} />
-          {fpick
-            ? <div className="fnote"><b>{fpick.name}, {fmtInt(fpick.value)}.</b> {fpick.note} <span className="demobadge" style={{ marginLeft: 6 }}>{fpick.source === "event" ? "GA4-event" : fpick.source === "sessions" || fpick.source === "keyEvents" ? "GA4" : "schatting"}</span></div>
-            : <div className="fnote" style={{ color: "var(--mist)" }}>Tik op een stap voor uitleg en de databron.</div>}
-          <div className="fstats">
-            <div className="fstat"><div className="fl">Conversieratio</div><div className="fv disp">{rate.toFixed(1).replace(".", ",")}%</div></div>
-            <div className="fstat"><div className="fl">Gem. waarde p. klant</div><div className="fv disp">&euro;{fmtInt(avgValue)}</div></div>
-          </div>
-          {hidden > 0 && <div className="maphint">{hidden} tussenstap{hidden > 1 ? "pen" : ""} (lead, aanvraag) verschijn{hidden > 1 ? "en" : "t"} zodra de site deze GA4-events stuurt.</div>}
-        </>
+        <BowtieFunnel avgValue={avgValue} />
       )}
     </Card>
   );

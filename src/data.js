@@ -239,7 +239,13 @@ export function demoData(period = "maand", compare = "prev") {
         { source: "/broodfonds-vs-aov", target: "Exit", value: Math.round(1658 * f) },
       ],
     },
-    demografie: null,
+    demografie: {
+      age: [
+        { n: "18-24", v: 640 }, { n: "25-34", v: 3120 }, { n: "35-44", v: 4280 },
+        { n: "45-54", v: 3060 }, { n: "55-64", v: 2210 }, { n: "65+", v: 1180 },
+      ],
+      gender: [ { n: "male", v: 8420 }, { n: "female", v: 6490 } ],
+    },
     eventsFound: false,
   };
 }
