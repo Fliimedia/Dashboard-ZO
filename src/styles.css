@@ -258,3 +258,10 @@ tr.click{cursor:pointer}
 .setin:focus{border-color:var(--navy)}
 .profrow{display:flex;align-items:center;gap:14px;margin:6px 0 10px}
 @media(max-width:880px){ .setl{width:120px} }
+
+/* app-branding */
+.applogo{font-family:'Space Grotesk';font-weight:700;font-size:15px;letter-spacing:.02em;white-space:nowrap}
+.oslogo{width:36px;height:36px;border-radius:10px;background:var(--ink);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;letter-spacing:.04em}
+.fliifoot{display:flex;justify-content:flex-end;align-items:center;gap:9px;padding:8px 4px 0;
+  font-family:'IBM Plex Mono';font-size:10px;letter-spacing:.05em;color:var(--mist)}
+.fliifoot .brandmark{box-shadow:none}
