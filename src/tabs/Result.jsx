@@ -8,7 +8,8 @@ import { getTargets } from "../targets.js";
 
 const DIM_LABELS = { kanalen: "Kanalen", campagnes: "Campagnes", landingspaginas: "Landingspagina's" };
 
-const COMPARE_LABEL = { prev: "vorige periode", yoy: "vorig jaar" };
+const PREV_YEAR = new Date().getFullYear() - 1;
+const COMPARE_LABEL = { prev: "vorige periode", yoy: String(PREV_YEAR) };
 
 export default function Result({ data, filter, goTrends }) {
   const { kpis, days, dims, countries } = data;
@@ -75,7 +76,7 @@ export default function Result({ data, filter, goTrends }) {
           { value: "maand", label: "M" }, { value: "week", label: "D" },
         ]} />
         <Seg value={filter.compare} onChange={filter.setCompare} options={[
-          { value: "prev", label: "Vs vorige periode" }, { value: "yoy", label: "Vs vorig jaar" },
+          { value: "prev", label: "Vs vorige periode" }, { value: "yoy", label: "Vs " + PREV_YEAR },
         ]} />
       </div>
 
@@ -87,7 +88,7 @@ export default function Result({ data, filter, goTrends }) {
 
       <KpiStrip kpis={kpis} metric={metric} setMetric={setMetric} />
 
-      <div className="r3">
+      <div className="stack">
         <Card>
           <div ref={tableRef} className="seghead" style={{ scrollMarginTop: 12 }}>
             <Seg value={dimKey} onChange={setDimKey} options={[
@@ -306,7 +307,7 @@ function FlowCard({ kpis, dims, flow, funnel }) {
       {mode === "flow" ? (
         <>
           <div className="h2">Meest gebruikte paginapad naar conversie{flow ? "" : " (schatting)"}</div>
-          <Chart option={flowOption} height={216} />
+          <Chart option={flowOption} height={252} />
         </>
       ) : (
         <>
