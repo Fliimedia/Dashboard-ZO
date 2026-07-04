@@ -3,7 +3,7 @@ import * as echarts from "echarts";
 import Chart from "../components/Chart.jsx";
 import { Card, Seg, fmtInt, fmtDur, fmtPctDelta } from "../components/ui.jsx";
 import { AX, TT, SPLIT, COLORS } from "../echartsSetup.js";
-import { CITIES } from "../data.js";
+import { CITIES, PERIOD_LABEL } from "../data.js";
 import { getTargets } from "../targets.js";
 
 const DIM_LABELS = { kanalen: "Kanalen", campagnes: "Campagnes", landingspaginas: "Landingspagina's" };
@@ -67,7 +67,7 @@ export default function Result({ data, filter, goTrends }) {
 
   return (
     <div className="view">
-      <AISummary s={summary} kpis={kpis} jumpTo={jumpTo} jumpMap={jumpMap} />
+      <AISummary s={summary} kpis={kpis} jumpTo={jumpTo} jumpMap={jumpMap} periodLabel={PERIOD_LABEL[filter.period]} />
 
       <div className="ctrlrow">
         <Seg value={filter.period} onChange={filter.setPeriod} options={[
@@ -177,11 +177,11 @@ function DemografieCard({ demografie }) {
   );
 }
 
-function AISummary({ s, kpis, jumpTo, jumpMap }) {
+function AISummary({ s, kpis, jumpTo, jumpMap, periodLabel }) {
   const Up = <svg viewBox="0 0 24 24"><path d="M12 19V5M6 11l6-6 6 6" /></svg>;
   return (
     <Card>
-      <div className="h1 disp">AI Summary</div>
+      <div className="h1 disp">AI Summary <span className="demobadge" style={{ marginLeft: 8, verticalAlign: "middle" }}>{periodLabel}</span></div>
       <div className="ins">
         <div className="oitem" onClick={() => jumpTo("kanalen")}>
           <div className="oic">{Up}</div>
