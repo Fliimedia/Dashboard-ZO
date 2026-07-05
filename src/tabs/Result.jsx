@@ -209,13 +209,38 @@ function AISummary({ s, kpis, jumpTo, jumpMap, periodLabel }) {
   );
 }
 
+function useCountUp(target, dur = 700) {
+  const [val, setVal] = useState(target);
+  const fromRef = useRef(target);
+  useEffect(() => {
+    const from = fromRef.current, to = target;
+    if (from === to) return;
+    let raf; const t0 = performance.now();
+    const tick = (t) => {
+      const p = Math.min(1, (t - t0) / dur);
+      const ease = 1 - Math.pow(1 - p, 3);
+      setVal(from + (to - from) * ease);
+      if (p < 1) raf = requestAnimationFrame(tick);
+      else fromRef.current = to;
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [target, dur]);
+  return val;
+}
+
+function CountUp({ value, suffix = "" }) {
+  const v = useCountUp(value);
+  return <>{fmtInt(Math.round(v))}{suffix}</>;
+}
+
 function KpiStrip({ kpis, metric, setMetric }) {
   const { cur, prev } = kpis;
   const items = [
-    { l: "Sessies", v: fmtInt(cur.s), d: fmtPctDelta(cur.s, prev.s), m: "s" },
-    { l: "Gebruikers", v: fmtInt(cur.u), d: fmtPctDelta(cur.u, prev.u), m: "u" },
-    { l: "Conversies", v: fmtInt(cur.c), d: fmtPctDelta(cur.c, prev.c), m: "c" },
-    { l: "Betrokkenheid", v: cur.e + "%", d: fmtPctDelta(cur.e, prev.e), m: "e" },
+    { l: "Sessies", v: cur.s, sfx: "", d: fmtPctDelta(cur.s, prev.s), m: "s" },
+    { l: "Gebruikers", v: cur.u, sfx: "", d: fmtPctDelta(cur.u, prev.u), m: "u" },
+    { l: "Conversies", v: cur.c, sfx: "", d: fmtPctDelta(cur.c, prev.c), m: "c" },
+    { l: "Betrokkenheid", v: cur.e, sfx: "%", d: fmtPctDelta(cur.e, prev.e), m: "e" },
   ];
   return (
     <Card className="kpis">
@@ -223,7 +248,7 @@ function KpiStrip({ kpis, metric, setMetric }) {
         <div className={"kpi" + (k.m ? " kclick" : "") + (k.m && k.m === metric ? " kon" : "")}
           key={k.l} onClick={() => k.m && setMetric(k.m)}>
           <div className="kl">{k.l}</div>
-          <div className="kv disp">{k.v}</div>
+          <div className="kv disp"><CountUp value={k.v} suffix={k.sfx} /></div>
           <span className={"kd " + (k.d >= 0 ? "up" : "down")}>{k.d >= 0 ? "+" : ""}{k.d}%</span>
         </div>
       ))}
