@@ -52,20 +52,47 @@ export default function Insights({ data, period = "maand", compare = "prev" }) {
     try { v ? localStorage.setItem(CTX_KEY, ctx) : localStorage.removeItem(CTX_KEY); } catch {}
   }
 
+  // Bouw een compleet rapport lokaal uit de echte cijfers. Geen invoer vereist.
+  function buildReport() {
+    const topCh = [...dims.kanalen].sort((a, b) => b.s - a.s)[0];
+    const topCa2 = [...dims.campagnes].sort((a, b) => b.c - a.c)[0];
+    const bestLp = [...dims.landingspaginas].sort((a, b) => b.c - a.c)[0];
+    const P = [];
+    P.push("Rapport, " + plabel + ".");
+    P.push("");
+    P.push("Kerncijfers. In de " + plabel + " waren er " + fmtInt(kpis.cur.s) + " sessies van " + fmtInt(kpis.cur.u) + " gebruikers, met " + fmtInt(kpis.cur.c) + " conversies. Dat is een conversieratio van " + String(rate).replace(".", ",") + "%. Het verkeer " + (delta >= 0 ? "steeg" : "daalde") + " " + Math.abs(delta) + "% tegenover " + cmp + ", conversies " + (cdelta >= 0 ? "stegen" : "daalden") + " " + Math.abs(cdelta) + "%.");
+    P.push("");
+    P.push("Kanalen. " + (topCh ? topCh.n + " leverde het meeste verkeer met " + fmtInt(topCh.s) + " sessies." : "") + (topCa2 ? " De campagne " + topCa2.n + " droeg het meest bij aan conversies (" + fmtInt(topCa2.c) + ")." : ""));
+    P.push("");
+    P.push("Pagina's. " + (bestLp ? bestLp.n + " converteert het best en verdient de meeste aandacht in optimalisatie." : "") + (weakCh ? " Het kanaal " + weakCh.n + " blijft achter in betrokkenheid (" + weakCh.e + "%) en is het duidelijkste verbeterpunt." : ""));
+    P.push("");
+    P.push("Aanbevelingen.");
+    P.push("1. Schaal " + (topCa2 ? topCa2.n : "de best presterende campagne") + " op, dit is de snelste route naar groei binnen het budget.");
+    P.push("2. Versterk de call to action op " + (bestLp ? bestLp.n : "de best converterende pagina") + " en test varianten van de kop.");
+    P.push("3. Verbeter de aansluiting tussen " + (weakCh ? weakCh.n : "het zwakste kanaal") + " en de landingspagina om betrokkenheid te verhogen.");
+    if (ctx && ctx.trim()) { P.push(""); P.push("Context van het team. " + ctx.trim()); }
+    return P.join("\n");
+  }
+
   async function generate() {
     setBusy(true); setReport("");
+    const local = buildReport();
     try {
+      // Optionele verrijking via de server, alleen als het endpoint een sleutel heeft
+      const facts = "Periode: " + plabel + ". Sessies " + kpis.cur.s + ", gebruikers " + kpis.cur.u + ", conversies " + kpis.cur.c + ", conversiewaarde " + kpis.cur.w + ", conversieratio " + rate + "%. " +
+        "Top kanalen: " + dims.kanalen.slice(0, 5).map((k) => k.n + " " + k.s + " sessies " + k.c + " conv").join("; ") + ". " +
+        (ctx ? "Context: " + ctx : "");
       const res = await fetch("/api/report", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ summary: { kpis, dims }, context: ctx, period: plabel }),
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ facts, type: "Performance rapport", client: "Flii Media" }),
       });
-      if (!res.ok) throw new Error("api " + res.status);
-      const out = await res.json();
-      setReport(out.report || out.text || "Geen rapport ontvangen");
-    } catch (e) {
-      setReport("Rapportgeneratie is nog niet geconfigureerd op deze omgeving (ANTHROPIC_API_KEY). Je context en de cijfers staan klaar als input.");
-    } finally { setBusy(false); }
+      if (res.ok) {
+        const out = await res.json();
+        if (out && out.ok !== false && (out.report || out.text)) { setReport(out.report || out.text); setBusy(false); return; }
+      }
+    } catch (e) { /* val terug op lokaal */ }
+    setReport(local);
+    setBusy(false);
   }
 
   return (
@@ -74,17 +101,25 @@ export default function Insights({ data, period = "maand", compare = "prev" }) {
         <div className="hrow">
           <div>
             <div className="h1 disp">Genereer rapport</div>
-            <div className="h2">Realtime analyse over de {plabel}</div>
+            <div className="h2">Kant en klaar rapport uit de cijfers van de {plabel}</div>
           </div>
           <button className="btn" style={{ marginBottom: 14 }} onClick={generate} disabled={busy}>{busy ? "Bezig..." : "Genereer rapport"}</button>
         </div>
-        <textarea className="rinput" placeholder="Eigen input, zoals context of focuspunten voor de analyse"
+        <textarea className="rinput" placeholder="Optioneel: context of focuspunten. Het rapport wordt uit de cijfers zelf opgebouwd."
           value={ctx} onChange={(e) => onCtx(e.target.value)} />
         <label className="chk">
           <input type="checkbox" checked={save} onChange={(e) => onSave(e.target.checked)} />
           Input opslaan voor volgende rapporten
         </label>
-        {report && <p style={{ fontSize: 13, lineHeight: 1.65, whiteSpace: "pre-wrap", marginTop: 10 }}>{report}</p>}
+        {report && (
+          <div className="reportout">
+            <div className="hrow" style={{ marginBottom: 6 }}>
+              <div className="h2">Rapport</div>
+              <button className="btn ghost" onClick={() => { try { navigator.clipboard.writeText(report); } catch {} }}>Kopieer</button>
+            </div>
+            <p style={{ fontSize: 13, lineHeight: 1.65, whiteSpace: "pre-wrap" }}>{report}</p>
+          </div>
+        )}
       </Card>
 
       <Card>
