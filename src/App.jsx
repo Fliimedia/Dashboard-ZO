@@ -206,7 +206,7 @@ export default function App() {
           {tab === "trends" && <Trends />}
           {tab === "insights" && <Insights data={d} period={period} compare={compare} />}
           {tab === "action" && <Action data={d} period={period} />}
-          {tab === "forecast" && <Forecast data={d} />}
+          {tab === "forecast" && <Forecast data={d} period={period} />}
           {tab === "settings" && <Settings />}
           {tab === "profile" && <Profile />}
           <div className="fliifoot">
