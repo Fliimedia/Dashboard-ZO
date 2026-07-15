@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import * as echarts from "echarts";
 import Chart from "../components/Chart.jsx";
+import { useUI } from "../i18n.js";
 import { Card, Seg, fmtInt } from "../components/ui.jsx";
 import { AX, TT, SPLIT, COLORS } from "../echartsSetup.js";
 import { KEYWORDS, KEYWORDS_ESTIMATED, SUBREDDITS } from "../data.js";
@@ -39,6 +40,7 @@ const DEMO_POSTS = [
 ];
 
 export default function Trends() {
+  const { theme } = useUI();
   const [period, setPeriod] = useState("maand");
   const [kwSel, setKwSel] = useState(KEYWORDS[0].k);
   const [ksort, setKsort] = useState({ k: "v", dir: -1 });
@@ -63,7 +65,7 @@ export default function Trends() {
       areaStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
         { offset: 0, color: "rgba(230,0,126,.24)" }, { offset: 1, color: "rgba(230,0,126,0)" }]) },
     }],
-  }), [labels, values, kw]);
+  }), [labels, values, kw, theme]);
 
   // Reddit: top 10 van de periode uit de 5 brand subreddits
   useEffect(() => {
