@@ -65,7 +65,25 @@ export default function Result({ data, filter, goTrends }) {
     const risers = distinct([...moves].filter((m) => m.pct > 0).sort((a, b) => b.pct - a.pct));
     const fallers = distinct([...moves].filter((m) => m.pct < 0).sort((a, b) => a.pct - b.pct));
 
-    return { topVis, topSal, risers, fallers };
+    // Context per beweger: plausibele oorzaak op basis van type en richting
+    const reason = (m) => {
+      const up = m.pct >= 0;
+      if (m.type === "zoekwoord") return up
+        ? "de zoekvraag naar deze term neemt toe, waarschijnlijk seizoensgebonden of door een nieuwstrend"
+        : "de zoekvraag koelt af, mogelijk na een piek of door meer concurrentie op deze term";
+      if (m.type === "kanaal") return up
+        ? "dit kanaal trekt aan, vermoedelijk door recente campagne-inzet of betere content"
+        : "dit kanaal verliest terrein, mogelijk door lagere inzet of verschoven budget";
+      if (m.type === "campagne") return up
+        ? "de campagne presteert beter, waarschijnlijk door budget of een sterkere creative"
+        : "de campagne zwakt af, mogelijk door vermoeidheid van de doelgroep of lager budget";
+      return up
+        ? "deze pagina wint aan kracht, vermoedelijk door betere vindbaarheid of interne verwijzingen"
+        : "deze pagina verliest verkeer of conversie, mogelijk door een wijziging of minder instroom";
+    };
+    const withReason = (arr) => arr.map((m) => ({ ...m, why: reason(m) }));
+
+    return { topVis, topSal, risers: withReason(risers), fallers: withReason(fallers) };
   }, [dims, countries, filter.period]);
 
   function jumpTo(key) {
@@ -129,7 +147,7 @@ export default function Result({ data, filter, goTrends }) {
         <Chart option={dayOption} height={216} />
       </Card>
 
-      <KpiStrip kpis={kpis} metric={metric} setMetric={setMetric} days={days} />
+      <KpiStrip kpis={kpis} metric={metric} setMetric={setMetric} />
 
       <div className="stack">
         <Card>
@@ -172,8 +190,41 @@ export default function Result({ data, filter, goTrends }) {
       <div className="r4">
         <div ref={mapRef} style={{ scrollMarginTop: 12, minWidth: 0 }}><MapCard countries={countries} cities={data.cities} /></div>
         <DemografieCard demografie={data.demografie} />
+        <DevicesCard devices={data.devices} />
       </div>
     </div>
+  );
+}
+
+function DevicesCard({ devices }) {
+  if (!devices || !devices.length) return null;
+  const total = devices.reduce((a, b) => a + b.u, 0) || 1;
+  const ICON = {
+    mobile: <svg viewBox="0 0 24 24"><rect x="7" y="3" width="10" height="18" rx="2" /><path d="M11 18h2" /></svg>,
+    desktop: <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="12" rx="2" /><path d="M8 20h8M12 16v4" /></svg>,
+    tablet: <svg viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="2" /><path d="M11 18h2" /></svg>,
+  };
+  const NL = { mobile: "Mobiel", desktop: "Desktop", tablet: "Tablet" };
+  return (
+    <Card>
+      <div className="h1 disp">Apparaten</div>
+      <div className="h2">Aandeel gebruikers en conversieratio per apparaat</div>
+      <div className="devgrid">
+        {devices.map((d) => {
+          const pct = Math.round((d.u / total) * 100);
+          return (
+            <div className="devcard" key={d.n}>
+              <div className="devico">{ICON[d.n] || ICON.desktop}</div>
+              <div className="devname">{NL[d.n] || d.n}</div>
+              <div className="devpct disp">{pct}%</div>
+              <div className="devbar"><i style={{ width: pct + "%" }} /></div>
+              <div className="devmeta">{fmtInt(d.u)} gebruikers</div>
+              <div className="devcr">Conversie <b>{String(d.cr).replace(".", ",")}%</b></div>
+            </div>
+          );
+        })}
+      </div>
+    </Card>
   );
 }
 
@@ -230,59 +281,59 @@ function DemografieCard({ demografie }) {
 
 function AISummary({ s, kpis, jumpTo, jumpMap, periodLabel }) {
   const I = {
-    vis: <svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2" /><path d="M3.5 19c.6-3 3-4.6 5.5-4.6S13.9 16 14.5 19" /><path d="M16 6.5a3 3 0 010 5.5M18.5 19c-.3-1.6-1-2.9-2-3.8" /></svg>,
-    sal: <svg viewBox="0 0 24 24"><path d="M4 5h2l1.5 11h9L18 8H7" /><circle cx="9" cy="20" r="1.3" /><circle cx="16" cy="20" r="1.3" /></svg>,
+    star: <svg viewBox="0 0 24 24"><path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9 6.8 19l1-5.8L3.5 9.2l5.9-.9z" /></svg>,
     up: <svg viewBox="0 0 24 24"><path d="M3 17l6-6 4 4 7-7" /><path d="M17 8h4v4" /></svg>,
     down: <svg viewBox="0 0 24 24"><path d="M3 7l6 6 4-4 7 7" /><path d="M17 16h4v-4" /></svg>,
   };
-  const typeLabel = { kanaal: "kanaal", campagne: "campagne", landingspagina: "landingspagina", zoekwoord: "zoekwoord" };
-  const goItem = (it) => it && it.jump ? () => jumpTo(it.jump) : undefined;
-
-  const moverLine = (m) => (
-    <div className="mline" key={m.n + m.metric}>
-      <span className={"mpct " + (m.pct >= 0 ? "up" : "down")}>{m.pct >= 0 ? "+" : ""}{m.pct}%</span>
-      <span className="mname">{m.n}</span>
-      <span className="mmeta">{typeLabel[m.type]} / {m.metric}</span>
-    </div>
-  );
+  const TL = { kanaal: "het kanaal", campagne: "de campagne", landingspagina: "de landingspagina", zoekwoord: "het zoekwoord" };
+  const metric = (m) => m.metric === "verkopen" ? "verkopen" : "bezoekers";
+  const jumpFor = (it) => it && it.jump ? () => jumpTo(it.jump) : undefined;
 
   const items = [];
-  if (s.topVis) items.push({
-    ic: I.vis, cls: "",
-    ot: <>Meeste bezoekers: {s.topVis.n}</>,
-    od: typeLabel[s.topVis.type] + " / " + fmtInt(s.topVis.vis) + " bezoekers",
-    go: goItem(s.topVis),
-  });
-  if (s.topSal) items.push({
-    ic: I.sal, cls: "",
-    ot: <>Meeste verkopen: {s.topSal.n}</>,
-    od: typeLabel[s.topSal.type] + " / " + fmtInt(s.topSal.sal) + " verkopen",
-    go: goItem(s.topSal),
-  });
-  if (s.risers && s.risers.length) items.push({
-    ic: I.up, cls: "grp",
-    ot: <>Grootste stijgers</>,
-    lines: s.risers.map(moverLine),
-    go: goItem(s.risers[0]),
-  });
-  if (s.fallers && s.fallers.length) items.push({
-    ic: I.down, cls: "grp",
-    ot: <>Grootste dalers</>,
-    lines: s.fallers.map(moverLine),
-    go: goItem(s.fallers[0]),
-  });
+
+  // Bullet 1: toppers, twee zinnen (bezoekers + verkopen)
+  if (s.topVis || s.topSal) {
+    items.push({
+      ic: I.star, go: jumpFor(s.topVis || s.topSal),
+      text: <>
+        {s.topVis && <>De meeste bezoekers kwamen via <b>{s.topVis.n}</b>, goed voor {fmtInt(s.topVis.vis)} bezoekers in de {periodLabel}. </>}
+        {s.topSal && <>De meeste verkopen kwamen van <b>{s.topSal.n}</b> met {fmtInt(s.topSal.sal)} conversies, wat dit de sterkste bron voor omzet maakt.</>}
+      </>,
+    });
+  }
+
+  // Bullet 2: twee grootste stijgers, elk een zin met context
+  if (s.risers && s.risers.length) {
+    const [a, b] = s.risers;
+    items.push({
+      ic: I.up, go: jumpFor(a),
+      text: <>
+        {a && <>De grootste stijger is {TL[a.type]} <b>{a.n}</b>, met {a.pct}% meer {metric(a)}; {a.why}. </>}
+        {b && <>Daarnaast groeide {TL[b.type]} <b>{b.n}</b> met {b.pct}% meer {metric(b)}, doordat {b.why}.</>}
+      </>,
+    });
+  }
+
+  // Bullet 3: twee grootste dalers, elk een zin met context
+  if (s.fallers && s.fallers.length) {
+    const [a, b] = s.fallers;
+    items.push({
+      ic: I.down, go: jumpFor(a),
+      text: <>
+        {a && <>De grootste daler is {TL[a.type]} <b>{a.n}</b>, met {Math.abs(a.pct)}% minder {metric(a)}; {a.why}. </>}
+        {b && <>Ook {TL[b.type]} <b>{b.n}</b> daalde met {Math.abs(b.pct)}% {metric(b)}, doordat {b.why}.</>}
+      </>,
+    });
+  }
 
   return (
     <Card>
-      <div className="h1 disp">AI Summary <span className="demobadge" style={{ marginLeft: 8, verticalAlign: "middle" }}>{periodLabel}</span></div>
+      <div className="h1 disp">AI Summary <span className="pill">{periodLabel}</span></div>
       <div className="oitems">
         {items.map((it, i) => (
-          <div className={"oitem " + it.cls + (it.go ? "" : " nolink")} key={i} onClick={it.go}>
+          <div className={"oitem" + (it.go ? "" : " nolink")} key={i} onClick={it.go}>
             <div className="oic">{it.ic}</div>
-            <div style={{ minWidth: 0, flex: 1 }}>
-              <div className="ot">{it.ot}</div>
-              {it.lines ? <div className="mlines">{it.lines}</div> : <div className="od">{it.od}</div>}
-            </div>
+            <div className="otext">{it.text}</div>
           </div>
         ))}
       </div>
@@ -315,23 +366,7 @@ function CountUp({ value, suffix = "" }) {
   return <>{fmtInt(Math.round(v))}{suffix}</>;
 }
 
-function Spark({ vals, on }) {
-  if (!vals || vals.length < 2) return null;
-  const w = 74, ht = 22;
-  const mn = Math.min(...vals), mx = Math.max(...vals);
-  const pts = vals.map((v, i) => {
-    const x = (i / (vals.length - 1)) * w;
-    const y = ht - ((v - mn) / Math.max(1, mx - mn)) * (ht - 3) - 1.5;
-    return x.toFixed(1) + "," + y.toFixed(1);
-  }).join(" ");
-  return (
-    <svg className="spark" width={w} height={ht} viewBox={"0 0 " + w + " " + ht}>
-      <polyline points={pts} fill="none" stroke={on ? "var(--magenta)" : "var(--dim)"} strokeWidth="1.6" strokeLinejoin="round" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-function KpiStrip({ kpis, metric, setMetric, days }) {
+function KpiStrip({ kpis, metric, setMetric }) {
   const { cur, prev } = kpis;
   const items = [
     { l: "Sessies", v: cur.s, sfx: "", d: fmtPctDelta(cur.s, prev.s), m: "s" },
@@ -339,7 +374,6 @@ function KpiStrip({ kpis, metric, setMetric, days }) {
     { l: "Conversies", v: cur.c, sfx: "", d: fmtPctDelta(cur.c, prev.c), m: "c" },
     { l: "Betrokkenheid", v: cur.e, sfx: "%", d: fmtPctDelta(cur.e, prev.e), m: "e" },
   ];
-  const tail = (key) => (days || []).slice(-21).map((d) => d[key] ?? 0);
   return (
     <Card className="kpis">
       {items.map((k) => (
@@ -347,10 +381,7 @@ function KpiStrip({ kpis, metric, setMetric, days }) {
           key={k.l} onClick={() => k.m && setMetric(k.m)}>
           <div className="kl">{k.l}</div>
           <div className="kv disp"><CountUp value={k.v} suffix={k.sfx} /></div>
-          <div className="krow">
-            <span className={"kd " + (k.d >= 0 ? "up" : "down")}>{k.d >= 0 ? "+" : ""}{k.d}%</span>
-            <Spark vals={tail(k.m)} on={k.m === metric} />
-          </div>
+          <span className={"kd " + (k.d >= 0 ? "up" : "down")}>{k.d >= 0 ? "+" : ""}{k.d}%</span>
         </div>
       ))}
     </Card>
@@ -461,9 +492,9 @@ function MapCard({ countries, cities }) {
   const chartRef = useRef(null);
 
   const VIEWS = {
-    land: { center: [5.4, 52.15], zoom: 16 },
-    continent: { center: [10, 51], zoom: 4.4 },
-    wereld: { center: [8, 20], zoom: 1.15 },
+    land: { center: [5.4, 52.2], zoom: 22 },
+    continent: { center: [10, 50], zoom: 6.2 },
+    wereld: { center: [10, 25], zoom: 1.35 },
   };
   const cityData = (cities && cities.length) ? cities : CITIES;
 
@@ -524,7 +555,18 @@ function MapCard({ countries, cities }) {
       ) : mapReady === null ? (
         <div className="chartbox" style={{ height: 252 }}><div className="mapmsg">Kaart laden...</div></div>
       ) : (
-        <Chart option={option} height={252} onInit={(c) => { chartRef.current = c; }} onClick={onClick} />
+        <div className="mapwrap">
+          <Chart option={option} height={300} onInit={(c) => { chartRef.current = c; }} onClick={onClick} />
+        <div className="maplegend">
+          <div className="mlghead">{view === "land" ? "Top steden" : "Top landen"}</div>
+          {(view === "land" ? [...cityData].sort((a, b) => b.value[2] - a.value[2]) : [...countries].sort((a, b) => b.value - a.value))
+            .slice(0, 10).map((r, i) => {
+              const nm = view === "land" ? r.name : r.name;
+              const val = view === "land" ? r.value[2] : r.value;
+              return <div className="mlg" key={nm}><span className="mlgi">{i + 1}</span><span className="mlgn">{nm}</span><span className="mlgv mono">{fmtInt(val)}</span></div>;
+            })}
+        </div>
+        </div>
       )}
       {view === "land" && mapReady && <div className="maphint">{hint}</div>}
       {mapReady === false && (
