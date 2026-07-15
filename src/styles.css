@@ -70,11 +70,13 @@ body{margin:0;font-family:'Inter',system-ui,sans-serif;color:var(--ink);-webkit-
 
 .hlcard{background:var(--hl);border:1px solid rgba(255,255,255,.2);color:#fff}
 .hlcard .h1{margin-bottom:6px}
+.hlcard .oic{background:rgba(255,255,255,.22)}
+.hlcard .oic svg{stroke:#fff}
 .ins{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:2px 18px}
 .oitem{display:flex;gap:10px;padding:6px 4px;align-items:flex-start;border-radius:10px;cursor:pointer}
 .oitem:hover{background:rgba(255,255,255,.10)}
-.oic{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex:none;background:rgba(255,255,255,.22)}
-.oic svg{width:11px;height:11px;stroke:#fff;fill:none;stroke-width:2.2}
+.oic{width:28px;height:28px;border-radius:9px;display:flex;align-items:center;justify-content:center;flex:none;background:rgba(230,0,126,.10)}
+.oic svg{width:14px;height:14px;stroke:var(--magenta);fill:none;stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
 .oitem .ot{font-size:12px;font-weight:500;line-height:1.35}
 .oitem .od{font-family:'IBM Plex Mono';font-size:9.5px;color:rgba(255,255,255,.65);margin-top:2px}
 
@@ -266,8 +268,8 @@ tr.click{cursor:pointer}
   font-family:'IBM Plex Mono';font-size:10px;letter-spacing:.05em;color:var(--mist)}
 .fliifoot .brandmark{box-shadow:none}
 
-.oitems{margin-top:14px;display:flex;flex-direction:column;gap:3px}
-.oic svg{width:12px;height:12px}
+.oitems{margin-top:14px;display:flex;flex-direction:column;gap:5px}
+.oitems .oic svg{width:14px;height:14px}
 .chips{margin-top:14px}
 .genwrap .btn{margin-bottom:14px}
 
