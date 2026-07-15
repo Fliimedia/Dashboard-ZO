@@ -201,20 +201,15 @@ function DevicesCard({ devices }) {
   };
   const NL = { mobile: "Mobiel", desktop: "Desktop", tablet: "Tablet" };
   return (
-    <Card>
-      <div className="h1 disp">Apparaten</div>
-      <div className="h2">Aandeel gebruikers en conversieratio per apparaat</div>
-      <div className="devgrid">
+    <Card className="devcompact">
+      <div className="devrow">
         {devices.map((d) => {
           const pct = Math.round((d.u / total) * 100);
           return (
-            <div className="devcard" key={d.n}>
-              <div className="devico">{ICON[d.n] || ICON.desktop}</div>
-              <div className="devname">{NL[d.n] || d.n}</div>
+            <div className="devitem" key={d.n}>
+              <div className="devtop">{ICON[d.n] || ICON.desktop}<span>{NL[d.n] || d.n}</span></div>
               <div className="devpct disp">{pct}%</div>
-              <div className="devbar"><i style={{ width: pct + "%" }} /></div>
-              <div className="devmeta">{fmtInt(d.u)} gebruikers</div>
-              <div className="devcr">Conversie <b>{String(d.cr).replace(".", ",")}%</b></div>
+              <div className="devcr">conv. {String(d.cr).replace(".", ",")}%</div>
             </div>
           );
         })}
