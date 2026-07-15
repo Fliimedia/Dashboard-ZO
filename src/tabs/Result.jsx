@@ -16,6 +16,8 @@ export default function Result({ data, filter, goTrends }) {
   const TARGET = getTargets().dailyConv;
   const [dimKey, setDimKey] = useState("kanalen");
   const [metric, setMetric] = useState("s"); // s=sessies, u=gebruikers, e=engagement
+  const [sort, setSort] = useState({ k: "s", dir: -1 });
+  function onSort(k) { setSort((p) => p.k === k ? { k, dir: -p.dir } : { k, dir: -1 }); }
   const tableRef = useRef(null);
   const mapRef = useRef(null);
   function jumpMap() { setTimeout(() => mapRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 50); }
@@ -60,6 +62,11 @@ export default function Result({ data, filter, goTrends }) {
       series: [
         { name: m.label, type: "line", data: vals, smooth: true, showSymbol: false,
           lineStyle: { width: 3, color: COLORS.magenta }, itemStyle: { color: COLORS.magenta }, areaStyle: { color: line } },
+        { name: "7d gemiddelde", type: "line", data: vals.map((_, i) => {
+            const a = vals.slice(Math.max(0, i - 6), i + 1);
+            return Math.round(a.reduce((x, y) => x + y, 0) / a.length);
+          }), smooth: true, showSymbol: false,
+          lineStyle: { width: 1.4, color: COLORS.mist, opacity: .8 }, itemStyle: { color: COLORS.mist } },
         { name: "Target", type: "line", data: days.map(() => m.target),
           showSymbol: false, lineStyle: { width: 1.6, type: "dashed", color: COLORS.deepviolet }, itemStyle: { color: COLORS.deepviolet } },
       ],
@@ -86,7 +93,7 @@ export default function Result({ data, filter, goTrends }) {
         <Chart option={dayOption} height={216} />
       </Card>
 
-      <KpiStrip kpis={kpis} metric={metric} setMetric={setMetric} />
+      <KpiStrip kpis={kpis} metric={metric} setMetric={setMetric} days={days} />
 
       <div className="stack">
         <Card>
@@ -99,9 +106,16 @@ export default function Result({ data, filter, goTrends }) {
           </div>
           <div className="tscroll">
             <table>
-              <thead><tr><th>Naam</th><th className="num">Gebruikers</th><th className="num">Sessies</th><th className="num">Duur</th><th className="num">Eng. %</th><th className="num">Conv.</th><th className="num">Waarde</th></tr></thead>
+              <thead><tr>
+                <th>Naam</th>
+                {[["u","Gebruikers"],["s","Sessies"],["t","Duur"],["e","Eng. %"],["c","Conv."],["w","Waarde"]].map(([k,l]) => (
+                  <th key={k} className={"num sortable" + (sort.k === k ? " on" : "")} onClick={() => onSort(k)}>
+                    {l}{sort.k === k ? (sort.dir < 0 ? " \u2193" : " \u2191") : ""}
+                  </th>
+                ))}
+              </tr></thead>
               <tbody>
-                {dims[dimKey].map((r) => (
+                {[...dims[dimKey]].sort((a, b) => (a[sort.k] ?? 0) < (b[sort.k] ?? 0) ? sort.dir : -sort.dir).map((r) => (
                   <tr key={r.n}>
                     <td><span className="cell"><span className="ci"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="4" /></svg></span>{r.n}</span></td>
                     <td className="num mono">{fmtInt(r.u)}</td>
@@ -234,7 +248,23 @@ function CountUp({ value, suffix = "" }) {
   return <>{fmtInt(Math.round(v))}{suffix}</>;
 }
 
-function KpiStrip({ kpis, metric, setMetric }) {
+function Spark({ vals, on }) {
+  if (!vals || vals.length < 2) return null;
+  const w = 74, ht = 22;
+  const mn = Math.min(...vals), mx = Math.max(...vals);
+  const pts = vals.map((v, i) => {
+    const x = (i / (vals.length - 1)) * w;
+    const y = ht - ((v - mn) / Math.max(1, mx - mn)) * (ht - 3) - 1.5;
+    return x.toFixed(1) + "," + y.toFixed(1);
+  }).join(" ");
+  return (
+    <svg className="spark" width={w} height={ht} viewBox={"0 0 " + w + " " + ht}>
+      <polyline points={pts} fill="none" stroke={on ? "var(--magenta)" : "var(--dim)"} strokeWidth="1.6" strokeLinejoin="round" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function KpiStrip({ kpis, metric, setMetric, days }) {
   const { cur, prev } = kpis;
   const items = [
     { l: "Sessies", v: cur.s, sfx: "", d: fmtPctDelta(cur.s, prev.s), m: "s" },
@@ -242,6 +272,7 @@ function KpiStrip({ kpis, metric, setMetric }) {
     { l: "Conversies", v: cur.c, sfx: "", d: fmtPctDelta(cur.c, prev.c), m: "c" },
     { l: "Betrokkenheid", v: cur.e, sfx: "%", d: fmtPctDelta(cur.e, prev.e), m: "e" },
   ];
+  const tail = (key) => (days || []).slice(-21).map((d) => d[key] ?? 0);
   return (
     <Card className="kpis">
       {items.map((k) => (
@@ -249,7 +280,10 @@ function KpiStrip({ kpis, metric, setMetric }) {
           key={k.l} onClick={() => k.m && setMetric(k.m)}>
           <div className="kl">{k.l}</div>
           <div className="kv disp"><CountUp value={k.v} suffix={k.sfx} /></div>
-          <span className={"kd " + (k.d >= 0 ? "up" : "down")}>{k.d >= 0 ? "+" : ""}{k.d}%</span>
+          <div className="krow">
+            <span className={"kd " + (k.d >= 0 ? "up" : "down")}>{k.d >= 0 ? "+" : ""}{k.d}%</span>
+            <Spark vals={tail(k.m)} on={k.m === metric} />
+          </div>
         </div>
       ))}
     </Card>
@@ -332,6 +366,13 @@ function FlowCard({ kpis, dims, flow, funnel }) {
           <Chart option={funnelOption} height={132} onClick={(p) => {
             const f = steps.find((x) => x.name === p.name); if (f) setFpick(f);
           }} />
+          <div className="fdrops">
+            {steps.slice(1).map((st, i) => {
+              const prev = steps[i].value || 1;
+              const pct = Math.round((st.value / prev) * 1000) / 10;
+              return <div className="fdrop" key={st.key}><span>{steps[i].name} naar {st.name}</span><b>{String(pct).replace(".", ",")}%</b></div>;
+            })}
+          </div>
           {fpick
             ? <div className="fnote"><b>{fpick.name}, {fmtInt(fpick.value)}.</b> {fpick.note} <span className="demobadge" style={{ marginLeft: 6 }}>{fpick.source === "event" ? "GA4-event" : fpick.source === "sessions" || fpick.source === "keyEvents" ? "GA4" : "schatting"}</span></div>
             : <div className="fnote" style={{ color: "var(--mist)" }}>Tik op een stap voor uitleg en de databron.</div>}
