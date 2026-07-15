@@ -353,3 +353,14 @@ th.sortable.on{color:var(--magenta)}
 .acbig{font-family:'Space Grotesk';font-weight:700;font-size:26px;flex:none}
 .achieve.ok .acbig{color:var(--pos)} .achieve.no .acbig{color:var(--neg)}
 .actxt{font-size:12.5px;line-height:1.5;color:var(--ink)}
+
+/* AI summary bewegers */
+.oitem.nolink{cursor:default}
+.oitem.nolink:hover{background:transparent}
+.oitem.grp{align-items:flex-start}
+.mlines{margin-top:5px;display:flex;flex-direction:column;gap:4px}
+.mline{display:flex;align-items:center;gap:8px;font-size:12px;min-width:0}
+.mpct{font-family:'Space Grotesk';font-weight:700;font-size:11px;flex:none;width:46px}
+.mpct.up{color:var(--pos)} .mpct.down{color:var(--neg)}
+.mname{font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mmeta{font-family:'IBM Plex Mono';font-size:9px;color:var(--mist);flex:none;margin-left:auto;white-space:nowrap}
