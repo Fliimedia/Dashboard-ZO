@@ -18,8 +18,6 @@ export default function Forecast({ data, period = "maand" }) {
   const [kpi, setKpi] = useState("conv");
   const [t, setT] = useState(getTargets());
 
-  function updGrowth(v) { setT(setTargets({ growthPct: Math.max(0, Number(v) || 0) })); }
-  function updDaily(v) { setT(setTargets({ dailyConv: Math.max(1, Number(v) || 1) })); }
   function updT(key, v) { setT(setTargets({ [key]: Math.max(0, Number(v) || 0) })); }
 
   // dagreeksen per KPI: gebruikers en waarde afgeleid van sessies (demo of live-benadering)
@@ -33,20 +31,18 @@ export default function Forecast({ data, period = "maand" }) {
   }, [days, kpis]);
 
 
-  // targetlijn per KPI: conversies via ingesteld dagtarget, anders vorige periode plus groeitarget
+  // Periodetarget per KPI, uit de targetkaarten. Conversiewaarde is afgeleid van het conversietarget.
+  const avgVal = kpis.cur.c ? kpis.cur.w / kpis.cur.c : 30;
+  const periodTarget = kpi === "users" ? t.tVisitors : kpi === "conv" ? t.tConv : Math.round(t.tConv * avgVal);
+  // De targetlijn is het dagtempo dat nodig is om het periodetarget te halen.
   const targetLine = useMemo(() => {
     const n = days.length || 1;
-    if (kpi === "conv") return days.map(() => t.dailyConv);
-    const prevAvgUsers = (kpis.prev.u || kpis.cur.u) / n;
-    const avgVal = kpis.cur.c ? kpis.cur.w / kpis.cur.c : 30;
-    const prevAvgValue = ((kpis.prev.c || kpis.cur.c) * avgVal) / n;
-    const base = kpi === "users" ? prevAvgUsers : prevAvgValue;
-    return days.map(() => Math.round(base * (1 + t.growthPct / 100)));
-  }, [kpi, days, kpis, t]);
+    return days.map(() => Math.round(periodTarget / n));
+  }, [days, periodTarget]);
 
   const chartOption = useMemo(() => ({
     grid: { left: 44, right: 10, top: 26, bottom: 22 },
-    legend: { top: 0, right: 0, icon: "roundRect", itemWidth: 10, itemHeight: 10,
+    legend: { top: 0, right: 0, icon: "roundRect", itemWidth: 10, itemHeight: 10, data: ["Resultaat", "Projectie", "Target"],
       textStyle: { color: "#6E6879", fontFamily: "IBM Plex Mono", fontSize: 9 } },
     tooltip: { ...TT, trigger: "axis" },
     xAxis: { ...AX, type: "category",
@@ -58,43 +54,51 @@ export default function Forecast({ data, period = "maand" }) {
     yAxis: { ...AX, type: "value", splitLine: SPLIT },
     series: (() => {
       const vals = series[kpi] || [];
+      const last = vals[vals.length - 1] || 0;
       const ext = Math.max(2, Math.round(days.length * 0.14));
       const rr = vals.slice(-7).reduce((a, b) => a + b, 0) / Math.min(7, Math.max(1, vals.length));
-      const projTail = Array(ext).fill(0).map((_, i) => Math.round(vals[vals.length - 1] + (rr - vals[vals.length - 1]) * ((i + 1) / ext)));
+      const projTail = Array(ext).fill(0).map((_, i) => Math.round(last + (rr - last) * ((i + 1) / ext)));
+      // band: pincht dicht op vandaag, verbreedt naar het einde
+      const lead = Array(Math.max(0, vals.length - 1)).fill(null);
+      const lo = projTail.map((v, i) => Math.round(v * (1 - (0.05 + 0.16 * ((i + 1) / ext)))));
+      const hiDelta = projTail.map((v, i) => Math.round(v * (1 + (0.05 + 0.16 * ((i + 1) / ext)))) - lo[i]);
       return [
-        { name: "Resultaat", type: "line", data: vals, smooth: true, showSymbol: false,
+        // onzichtbare ondergrens + gevulde band als bandbreedte erbovenop
+        { name: "lo", type: "line", stack: "band", symbol: "none", silent: true,
+          data: [...lead, last, ...lo], lineStyle: { opacity: 0 }, z: 1 },
+        { name: "Onzekerheid", type: "line", stack: "band", symbol: "none", silent: true,
+          data: [...lead, 0, ...hiDelta], lineStyle: { opacity: 0 },
+          areaStyle: { color: "rgba(230,0,126,.12)" }, z: 1 },
+        { name: "Resultaat", type: "line", data: vals, smooth: true, showSymbol: false, z: 3,
           lineStyle: { width: 3, color: COLORS.magenta }, itemStyle: { color: COLORS.magenta },
           areaStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
             { offset: 0, color: "rgba(230,0,126,.22)" }, { offset: 1, color: "rgba(230,0,126,0)" }]) } },
-        { name: "Projectie", type: "line", smooth: true, showSymbol: false,
-          data: [...Array(Math.max(0, vals.length - 1)).fill(null), vals[vals.length - 1], ...projTail],
-          lineStyle: { width: 2, type: "dotted", color: COLORS.mist }, itemStyle: { color: COLORS.mist } },
-        { name: "Target", type: "line", data: [...targetLine, ...Array(ext).fill(targetLine[0])], showSymbol: false,
-          lineStyle: { width: 2, type: "dashed", color: COLORS.deepviolet },
-          itemStyle: { color: COLORS.deepviolet } },
+        { name: "Projectie", type: "line", smooth: true, showSymbol: false, z: 3,
+          data: [...lead, last, ...projTail],
+          lineStyle: { width: 2, type: "dotted", color: COLORS.magenta }, itemStyle: { color: COLORS.magenta } },
+        { name: "Target", type: "line", data: [...targetLine, ...Array(ext).fill(targetLine[0])], showSymbol: false, z: 2,
+          lineStyle: { width: 2, type: "dashed", color: COLORS.deepviolet }, itemStyle: { color: COLORS.deepviolet } },
       ];
     })(),
   }), [days, series, kpi, targetLine]);
 
-  // trendtabel: MoM, QoQ en YoY elk uit hun eigen cur/base-venster
-  const rows = useMemo(() => {
-    const P = periods || {};
-    const d = (cad, key) => {
-      const c = P[cad]; if (!c || !c.cur || !c.base) return null;
-      const base = c.base[key], cur = c.cur[key];
-      return base ? Math.round(((cur - base) / base) * 100) : null;
-    };
-    const row = (label, key) => ({ l: label, mom: d("mom", key), qoq: d("qoq", key), yoy: d("yoy", key) });
-    return [row("Gebruikers", "u"), row("Conversies", "c"), row("Conversiewaarde", "w")];
-  }, [periods]);
+  // Haalbaarheid: projectie einde periode tegen het periodetarget
+  const achieve = useMemo(() => {
+    const vals = series[kpi] || [];
+    const last = vals[vals.length - 1] || 0;
+    const ext = Math.max(2, Math.round(days.length * 0.14));
+    const rr = vals.slice(-7).reduce((a, b) => a + b, 0) / Math.min(7, Math.max(1, vals.length));
+    const done = vals.reduce((a, b) => a + b, 0);
+    const projExtra = Array(ext).fill(0).reduce((a, _, i) => a + Math.round(last + (rr - last) * ((i + 1) / ext)), 0);
+    // projectie voor het resterende deel van de periode: run-rate over de nog te gane dagen
+    const remaining = Math.max(0, days.length - vals.length);
+    const projTotal = done + Math.round(rr * remaining);
+    const pct = periodTarget ? Math.round((projTotal / periodTarget) * 100) : 0;
+    const gap = projTotal - periodTarget;
+    return { projTotal, pct, gap };
+  }, [series, kpi, days, periodTarget]);
 
-  const Cell = ({ v }) => (
-    <td className="num mono">
-      {v === null || v === undefined
-        ? <span style={{ color: "var(--dim)" }}>n.v.t.</span>
-        : <span className={"kd " + (v >= t.growthPct ? "up" : "down")} style={{ display: "inline" }}>{v >= 0 ? "+" : ""}{v}%</span>}
-    </td>
-  );
+
 
   return (
     <div className="view">
@@ -136,11 +140,16 @@ export default function Forecast({ data, period = "maand" }) {
           <Seg value={kpi} onChange={setKpi} options={KPIS.map((k) => ({ value: k.id, label: k.label }))} />
         </div>
         <Chart option={chartOption} height={226} />
-        <div className="fctrls">
-          <label>Groeitarget % <input className="tin" type="number" value={t.growthPct} onChange={(e) => updGrowth(e.target.value)} /></label>
-          <label>Dagtarget conversies <input className="tin" type="number" value={t.dailyConv} onChange={(e) => updDaily(e.target.value)} /></label>
+        <div className={"achieve " + (achieve.gap >= 0 ? "ok" : "no")}>
+          <div className="acbig disp">{achieve.pct}%</div>
+          <div className="actxt">
+            Bij dit tempo kom je uit op <b>{fmtInt(achieve.projTotal)}</b> {KPIS.find((k) => k.id === kpi)?.label.toLowerCase()}, tegen een doel van {fmtInt(periodTarget)}.
+            {achieve.gap >= 0
+              ? <> Je <b>overtreft</b> je doel met {fmtInt(achieve.gap)}.</>
+              : <> Je komt <b>{fmtInt(Math.abs(achieve.gap))}</b> tekort.</>}
+          </div>
         </div>
-        <div className="maphint">De projectielijn trekt de run-rate van de laatste 7 dagen door tot het einde van de periode. Het dagtarget stuurt ook de targetlijn op Result.</div>
+        <div className="maphint">De band toont de onzekerheid: de projectie verbreedt naar het einde van de periode. Stel je doel in bij de targetkaarten hierboven.</div>
       </Card>
 
     </div>
