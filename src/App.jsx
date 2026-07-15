@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { UIContext } from "./i18n.js";
 import Result from "./tabs/Result.jsx";
 import Trends from "./tabs/Trends.jsx";
 import Insights from "./tabs/Insights.jsx";
@@ -156,6 +157,13 @@ export default function App() {
   const [data, setData] = useState(null);
   const [period, setPeriod] = useState("maand");
   const [compare, setCompare] = useState("prev");
+  const [lang, setLang] = useState(() => { try { return localStorage.getItem("pos_lang") || ((navigator.language || "").startsWith("en") ? "en" : "nl"); } catch { return "nl"; } });
+  const [theme, setTheme] = useState(() => { try { return localStorage.getItem("pos_theme") || "light"; } catch { return "light"; } });
+  useEffect(() => { try { localStorage.setItem("pos_lang", lang); } catch {} }, [lang]);
+  useEffect(() => {
+    try { localStorage.setItem("pos_theme", theme); } catch {}
+    document.documentElement.setAttribute("data-theme", theme);
+  }, [theme]);
 
   useEffect(() => {
     let alive = true;
@@ -171,7 +179,7 @@ export default function App() {
   const title = tab === "settings" ? "Instellingen" : tab === "profile" ? "Profiel" : (TABS.find((t) => t.id === tab)?.label || "");
 
   return (
-    <>
+    <UIContext.Provider value={{ lang, setLang, theme, setTheme }}>
       <div className="frame">
         <div className="rail">
           <div className="railbrand"><div className="oslogo disp">OS</div></div>
@@ -210,7 +218,15 @@ export default function App() {
           {tab === "settings" && <Settings />}
           {tab === "profile" && <Profile />}
           <div className="fliifoot">
-            <span>let's Ignite ambitions</span>
+            <div className="footicons">
+              <button className="footbtn" onClick={() => setTheme(theme === "dark" ? "light" : "dark")} title={theme === "dark" ? "Lichte modus" : "Donkere modus"} aria-label="Thema wisselen">
+                {theme === "dark"
+                  ? <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4.5" /><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M19.1 4.9l-1.4 1.4M6.3 17.7l-1.4 1.4" /></svg>
+                  : <svg viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1111.2 3a7 7 0 009.8 9.8z" /></svg>}
+              </button>
+              <button className="footbtn lang" onClick={() => setLang(lang === "nl" ? "en" : "nl")} title="Language" aria-label="Taal wisselen">{lang === "nl" ? "NL" : "EN"}</button>
+            </div>
+            <span className="footslogan">let's Ignite ambitions</span>
             <BrandMark size={26} />
           </div>
         </div>
@@ -223,6 +239,6 @@ export default function App() {
           </div>
         ))}
       </div>
-    </>
+    </UIContext.Provider>
   );
 }
