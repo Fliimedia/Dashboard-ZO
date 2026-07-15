@@ -192,31 +192,40 @@ export function demoData(period = "maand", compare = "prev") {
     c: Math.round(curTot.c * dprev.c), w: Math.round(curTot.w * dprev.w), e: Math.round(curTot.e * dprev.e) };
   const f = n / 30;
   const yo = compare === "yoy" ? 0.88 : 1; // vorig jaar iets lager in demo
+  // Deterministische verrijking: vorige-periodewaarde per rij, varieert per periode
+  const seed = (str) => { let x = 0; for (const ch of String(str)) x = (x * 31 + ch.charCodeAt(0)) >>> 0; return x; };
+  const enrich = (rows) => rows.map((r) => {
+    const g = seed(r.n + "|" + period);
+    const uFac = 1 + (((g % 46) - 22) / 100);   // bezoekers -22%..+23%
+    const cFac = 1 + ((((g >>> 5) % 52) - 24) / 100); // verkopen -24%..+27%
+    return { ...r, u: Math.round(r.u * f), s: Math.round(r.s * f), c: Math.round(r.c * f), w: Math.round(r.w * f),
+      pu: Math.max(1, Math.round((r.u * f) / uFac)), pc: Math.max(0, Math.round((r.c * f) / cFac)) };
+  });
   return {
     live: false,
     kpis: { cur: curTot, prev: prevTot },
     days,
     dims: {
-      kanalen: [
+      kanalen: enrich([
         { n: "Organic Search", u: 4980, s: 6113, d: 214, e: 74, c: 302, w: 9120 },
         { n: "Direct", u: 3210, s: 4026, d: 186, e: 61, c: 171, w: 5480 },
         { n: "Social", u: 2440, s: 2684, d: 98, e: 48, c: 64, w: 1710 },
         { n: "Referral", u: 1010, s: 1341, d: 172, e: 57, c: 52, w: 1590 },
         { n: "E-mail", u: 590, s: 748, d: 238, e: 69, c: 71, w: 2260 },
-      ],
-      campagnes: [
+      ]),
+      campagnes: enrich([
         { n: "zomer-actie", u: 520, s: 640, d: 196, e: 66, c: 58, w: 1980 },
         { n: "merk-always-on", u: 790, s: 980, d: 154, e: 59, c: 44, w: 1340 },
         { n: "retargeting-q2", u: 310, s: 412, d: 221, e: 71, c: 39, w: 1210 },
         { n: "nieuwsbrief-juni", u: 280, s: 344, d: 243, e: 73, c: 31, w: 960 },
-      ],
-      landingspaginas: [
+      ]),
+      landingspaginas: enrich([
         { n: "/home", u: 3820, s: 4630, d: 167, e: 63, c: 148, w: 4480 },
         { n: "/aanbod", u: 2280, s: 2760, d: 203, e: 70, c: 171, w: 5230 },
         { n: "/prijzen", u: 1140, s: 1385, d: 188, e: 66, c: 96, w: 2890 },
         { n: "/over-ons", u: 660, s: 790, d: 141, e: 58, c: 12, w: 340 },
         { n: "/blog", u: 540, s: 684, d: 256, e: 72, c: 9, w: 270 },
-      ],
+      ]),
     },
     countries: [
       { name: "Netherlands", value: 6204, e: 71 }, { name: "Germany", value: 1887, e: 64 },
