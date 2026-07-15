@@ -15,6 +15,7 @@ export default function Action({ data, period = "maand" }) {
   const plabel = PERIOD_LABEL[period] || "deze periode";
   const { kpis, dims } = data;
   const [state, setState] = useState(loadState);
+  const [flt, setFlt] = useState("alle");
 
   // vervolgacties afgeleid van de cijfers, met stabiele id per actie
   const actions = useMemo(() => {
@@ -22,15 +23,15 @@ export default function Action({ data, period = "maand" }) {
     const topLp = [...dims.landingspaginas].sort((a, b) => b.c - a.c)[0];
     const topCa = [...dims.campagnes].sort((a, b) => b.c - a.c)[0];
     return [
-      { id: "engagement", t: "Betrokkenheid " + (weakCh ? weakCh.n : "zwakste kanaal") + " verbeteren",
+      { id: "engagement", prio: "middel", t: "Betrokkenheid " + (weakCh ? weakCh.n : "zwakste kanaal") + " verbeteren",
         d: "Dit kanaal heeft de laagste betrokkenheid (" + (weakCh ? weakCh.e : 0) + "%). Verbeter de aansluiting tussen instroom en landingspagina, en test een specifiekere boodschap." },
-      { id: "landing", t: "Call to action versterken op " + (topLp ? topLp.n : "beste pagina"),
+      { id: "landing", prio: "hoog", t: "Call to action versterken op " + (topLp ? topLp.n : "beste pagina"),
         d: "Deze landingspagina converteert het best. Zet er de belangrijkste call to action prominenter neer en test varianten van de kop." },
-      { id: "campaign", t: "Best presterende campagne opschalen: " + (topCa ? topCa.n : "topcampagne"),
+      { id: "campaign", prio: "hoog", t: "Best presterende campagne opschalen: " + (topCa ? topCa.n : "topcampagne"),
         d: "Deze campagne levert de meeste conversies. Onderzoek een hoger budget of een tweede doelgroep met dezelfde boodschap." },
-      { id: "utm", t: "UTM-tagging controleren op alle campagnes",
+      { id: "utm", prio: "laag", t: "UTM-tagging controleren op alle campagnes",
         d: "Zorg dat elke campagne UTM-tags voert, zodat de campagne-tabel compleet en betrouwbaar blijft." },
-      { id: "target", t: "Dagtarget verhogen zodra het twee weken wordt gehaald",
+      { id: "target", prio: "middel", t: "Dagtarget verhogen zodra het twee weken wordt gehaald",
         d: "Conversies staan op " + (kpis.cur.c || 0) + " in de periode. Verhoog het dagtarget pas als het huidige target twee weken op rij wordt gehaald." },
     ];
   }, [dims, kpis]);
@@ -59,11 +60,21 @@ export default function Action({ data, period = "maand" }) {
       <Card>
         <div className="h1 disp">Vervolgacties</div>
         <div className="h2">Uit de cijfers van de {plabel}, {open.length} open van {actions.length}</div>
-        {actions.map((a) => {
+        <div className="aprog"><i style={{ width: Math.round((done.length / actions.length) * 100) + "%" }} /></div>
+        <div className="afilters">
+          {[["alle", "Alle"], ["open", "Open"], ["approved", "Goedgekeurd"], ["rejected", "Afgekeurd"]].map(([k, l]) => (
+            <button key={k} className={"fchip" + (flt === k ? " on" : "")} onClick={() => setFlt(k)}>{l}</button>
+          ))}
+        </div>
+        {actions
+          .filter((a) => flt === "alle" ? true : flt === "open" ? !state[a.id]?.status : state[a.id]?.status === flt)
+          .sort((a, b) => ({ hoog: 0, middel: 1, laag: 2 }[a.prio] - { hoog: 0, middel: 1, laag: 2 }[b.prio]))
+          .map((a) => {
           const st = state[a.id] || {};
           return (
             <div className={"action" + (st.status ? " " + st.status : "")} key={a.id}>
               <div className="atop">
+                <span className={"prio " + a.prio}>{a.prio}</span>
                 <div className="atitle">{a.t}</div>
                 {st.status && <span className={"astatus " + st.status}>{st.status === "approved" ? "Goedgekeurd" : "Afgekeurd"}</span>}
               </div>
