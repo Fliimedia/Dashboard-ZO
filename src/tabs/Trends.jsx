@@ -41,6 +41,8 @@ const DEMO_POSTS = [
 export default function Trends() {
   const [period, setPeriod] = useState("maand");
   const [kwSel, setKwSel] = useState(KEYWORDS[0].k);
+  const [ksort, setKsort] = useState({ k: "v", dir: -1 });
+  function onKsort(k) { setKsort((p) => p.k === k ? { k, dir: -p.dir } : { k, dir: -1 }); }
   const [rt, setRt] = useState("maand");
   const [posts, setPosts] = useState(null); // null = laden
 
@@ -106,12 +108,19 @@ export default function Trends() {
           <Chart option={volOption} height={238} />
           <div className="kwscroll">
             <table className="compact" style={{ width: "100%" }}>
-              <thead><tr><th>Keyword</th><th className="num">Zoekvol. {volLabel(period)}</th><th className="num">Trend</th></tr></thead>
+              <thead><tr>
+                  <th>Keyword</th>
+                  {[["v","Volume p/m"],["c","Trend"]].map(([k,l]) => (
+                    <th key={k} className={"num sortable" + (ksort.k === k ? " on" : "")} onClick={() => onKsort(k)}>
+                      {l}{ksort.k === k ? (ksort.dir < 0 ? " \u2193" : " \u2191") : ""}
+                    </th>
+                  ))}
+                </tr></thead>
               <tbody>
-                {KEYWORDS.map((r) => (
+                {[...KEYWORDS].sort((a, b) => (a[ksort.k] ?? 0) < (b[ksort.k] ?? 0) ? ksort.dir : -ksort.dir).map((r) => (
                   <tr key={r.k} className={"click" + (r.k === kwSel ? " sel" : "")} onClick={() => setKwSel(r.k)}>
                     <td style={{ whiteSpace: "normal" }}>{r.k}</td>
-                    <td className="num mono">{fmtInt(volFor(r, period))}</td>
+                    <td className="num mono"><span className="volbar"><i style={{ width: Math.round((volFor(r, period) / Math.max(...KEYWORDS.map((x) => volFor(x, period)))) * 100) + "%" }} /><span>{fmtInt(volFor(r, period))}</span></span></td>
                     <td className="num mono"><span className={"kd " + (r.c >= 0 ? "up" : "down")} style={{ display: "inline" }}>{r.c >= 0 ? "+" : ""}{r.c}%</span></td>
                   </tr>
                 ))}
