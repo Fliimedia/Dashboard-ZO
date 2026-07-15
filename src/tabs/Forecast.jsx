@@ -29,6 +29,20 @@ export default function Forecast({ data }) {
     return { users, conv, value };
   }, [days, kpis]);
 
+  // Doelvoortgang: realisatie, doel en projectie op run-rate van de laatste 7 dagen
+  const pacing = useMemo(() => {
+    const n = days.length || 1;
+    const vals = series[kpi] || [];
+    const done = vals.reduce((a, b) => a + b, 0);
+    const rr = vals.slice(-7).reduce((a, b) => a + b, 0) / Math.min(7, Math.max(1, vals.length));
+    const goal = kpi === "conv" ? t.dailyConv * n
+      : kpi === "users" ? Math.round((kpis.prev.u || kpis.cur.u) * (1 + t.growthPct / 100))
+      : Math.round(((kpis.prev.c || kpis.cur.c) * (kpis.cur.c ? kpis.cur.w / kpis.cur.c : 30)) * (1 + t.growthPct / 100));
+    const proj = Math.round(rr * n);
+    const pct = goal ? Math.round((done / goal) * 100) : 0;
+    return { done, goal, proj, pct, ok: proj >= goal };
+  }, [series, kpi, days, t, kpis]);
+
   // targetlijn per KPI: conversies via ingesteld dagtarget, anders vorige periode plus groeitarget
   const targetLine = useMemo(() => {
     const n = days.length || 1;
@@ -45,18 +59,31 @@ export default function Forecast({ data }) {
     legend: { top: 0, right: 0, icon: "roundRect", itemWidth: 10, itemHeight: 10,
       textStyle: { color: "#6E6879", fontFamily: "IBM Plex Mono", fontSize: 9 } },
     tooltip: { ...TT, trigger: "axis" },
-    xAxis: { ...AX, type: "category", data: days.map((d) => d.date), boundaryGap: false,
-      axisLabel: { ...AX.axisLabel, interval: Math.max(1, Math.floor(days.length / 7)) } },
+    xAxis: { ...AX, type: "category",
+      data: (() => {
+        const ext = Math.max(2, Math.round(days.length * 0.14));
+        return [...days.map((d) => d.date), ...Array(ext).fill(0).map((_, i) => "+" + (i + 1))];
+      })(), boundaryGap: false,
+      axisLabel: { ...AX.axisLabel, interval: Math.max(1, Math.floor(days.length / 6)) } },
     yAxis: { ...AX, type: "value", splitLine: SPLIT },
-    series: [
-      { name: "Resultaat", type: "line", data: series[kpi], smooth: true, showSymbol: false,
-        lineStyle: { width: 3, color: COLORS.magenta }, itemStyle: { color: COLORS.magenta },
-        areaStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-          { offset: 0, color: "rgba(230,0,126,.22)" }, { offset: 1, color: "rgba(230,0,126,0)" }]) } },
-      { name: "Target", type: "line", data: targetLine, showSymbol: false,
-        lineStyle: { width: 2, type: "dashed", color: COLORS.deepviolet },
-        itemStyle: { color: COLORS.deepviolet } },
-    ],
+    series: (() => {
+      const vals = series[kpi] || [];
+      const ext = Math.max(2, Math.round(days.length * 0.14));
+      const rr = vals.slice(-7).reduce((a, b) => a + b, 0) / Math.min(7, Math.max(1, vals.length));
+      const projTail = Array(ext).fill(0).map((_, i) => Math.round(vals[vals.length - 1] + (rr - vals[vals.length - 1]) * ((i + 1) / ext)));
+      return [
+        { name: "Resultaat", type: "line", data: vals, smooth: true, showSymbol: false,
+          lineStyle: { width: 3, color: COLORS.magenta }, itemStyle: { color: COLORS.magenta },
+          areaStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+            { offset: 0, color: "rgba(230,0,126,.22)" }, { offset: 1, color: "rgba(230,0,126,0)" }]) } },
+        { name: "Projectie", type: "line", smooth: true, showSymbol: false,
+          data: [...Array(Math.max(0, vals.length - 1)).fill(null), vals[vals.length - 1], ...projTail],
+          lineStyle: { width: 2, type: "dotted", color: COLORS.mist }, itemStyle: { color: COLORS.mist } },
+        { name: "Target", type: "line", data: [...targetLine, ...Array(ext).fill(targetLine[0])], showSymbol: false,
+          lineStyle: { width: 2, type: "dashed", color: COLORS.deepviolet },
+          itemStyle: { color: COLORS.deepviolet } },
+      ];
+    })(),
   }), [days, series, kpi, targetLine]);
 
   // trendtabel: MoM, QoQ en YoY elk uit hun eigen cur/base-venster
@@ -81,6 +108,17 @@ export default function Forecast({ data }) {
 
   return (
     <div className="view">
+      <Card>
+        <div className="pacerow">
+          <div className="pace"><div className="pl">Realisatie</div><div className="pv disp">{fmtInt(pacing.done)}</div></div>
+          <div className="pace"><div className="pl">Doel</div><div className="pv disp">{fmtInt(pacing.goal)}</div></div>
+          <div className="pace"><div className="pl">Projectie</div><div className="pv disp">{fmtInt(pacing.proj)}</div></div>
+          <div className="pacefill">
+            <div className="pl">{pacing.pct}% van doel <span className={"pstat " + (pacing.ok ? "ok" : "no")}>{pacing.ok ? "op koers" : "achter op doel"}</span></div>
+            <div className="pbar"><i style={{ width: Math.min(100, pacing.pct) + "%" }} /></div>
+          </div>
+        </div>
+      </Card>
       <Card>
         <div className="hrow">
           <div>
