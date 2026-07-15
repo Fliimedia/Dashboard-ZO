@@ -44,6 +44,7 @@ export function buildReports(period = "maand", compare = "prev") {
     { dateRanges: cur, dimensions: [{ name: "pagePath" }], metrics: [{ name: "screenPageViews" }, { name: "keyEvents" }], orderBys: [{ metric: { metricName: "screenPageViews" }, desc: true }], limit: 12 }, // flow
     { dateRanges: cur, dimensions: [{ name: "userAgeBracket" }], metrics: [{ name: "sessions" }], limit: 10 }, // demografie leeftijd (vereist Signals)
     { dateRanges: cur, dimensions: [{ name: "userGender" }], metrics: [{ name: "sessions" }], limit: 5 },      // demografie geslacht (vereist Signals)
+    { dateRanges: cur, dimensions: [{ name: "deviceCategory" }], metrics: [{ name: "totalUsers" }, { name: "sessions" }, { name: "keyEvents" }], orderBys: [{ metric: { metricName: "totalUsers" }, desc: true }], limit: 5 }, // devices
   ];
 }
 
@@ -109,7 +110,11 @@ export async function fetchData(propertyId, period = "maand", compare = "prev") 
   const age = (reps[16]?.rows || []).map((r) => ({ n: dim(r, 0), v: num(r, 0) })).filter((x) => x.n && x.n !== "unknown");
   const gender = (reps[17]?.rows || []).map((r) => ({ n: dim(r, 0), v: num(r, 0) })).filter((x) => x.n && x.n !== "unknown");
   const demografie = (age.length || gender.length) ? { age, gender } : null;
-  return { live: true, kpis, days, dims, countries, cities: cities.length ? cities : null, periods, funnel, flow, demografie, eventsFound: Object.keys(events).length > 0 };
+  const devices = (reps[18]?.rows || []).map((r) => {
+    const u = num(r, 0), s = num(r, 1), ke = num(r, 2);
+    return { n: dim(r, 0), u, cr: s ? Math.round((ke / s) * 1000) / 10 : 0 };
+  }).filter((d) => d.n);
+  return { live: true, kpis, days, dims, countries, cities: cities.length ? cities : null, periods, funnel, flow, demografie, devices: devices.length ? devices : null, eventsFound: Object.keys(events).length > 0 };
 }
 
 // Bouw een 4-staps funnel uit GA4-events, met afgeleide terugval per stap.
@@ -268,6 +273,11 @@ export function demoData(period = "maand", compare = "prev") {
       ],
       gender: [ { n: "male", v: 6570 }, { n: "female", v: 4560 } ],
     },
+    devices: [
+      { n: "mobile", u: Math.round(6890 * f), cr: 3.4 },
+      { n: "desktop", u: Math.round(3760 * f), cr: 5.1 },
+      { n: "tablet", u: Math.round(560 * f), cr: 2.8 },
+    ],
     eventsFound: false,
   };
 }
