@@ -116,11 +116,6 @@ export default function Result({ data, filter, goTrends }) {
       series: [
         { name: m.label, type: "line", data: vals, smooth: true, showSymbol: false,
           lineStyle: { width: 3, color: COLORS.magenta }, itemStyle: { color: COLORS.magenta }, areaStyle: { color: line } },
-        { name: "7d gemiddelde", type: "line", data: vals.map((_, i) => {
-            const a = vals.slice(Math.max(0, i - 6), i + 1);
-            return Math.round(a.reduce((x, y) => x + y, 0) / a.length);
-          }), smooth: true, showSymbol: false,
-          lineStyle: { width: 1.4, color: COLORS.mist, opacity: .8 }, itemStyle: { color: COLORS.mist } },
         { name: "Target", type: "line", data: days.map(() => m.target),
           showSymbol: false, lineStyle: { width: 1.6, type: "dashed", color: COLORS.deepviolet }, itemStyle: { color: COLORS.deepviolet } },
       ],
