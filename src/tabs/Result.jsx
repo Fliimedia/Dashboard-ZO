@@ -4,6 +4,7 @@ import Chart from "../components/Chart.jsx";
 import { Card, Seg, fmtInt, fmtDur, fmtPctDelta } from "../components/ui.jsx";
 import { AX, TT, SPLIT, COLORS } from "../echartsSetup.js";
 import { CITIES, PERIOD_LABEL, KEYWORDS } from "../data.js";
+import { useUI } from "../i18n.js";
 import { getTargets } from "../targets.js";
 
 const DIM_LABELS = { kanalen: "Kanalen", campagnes: "Campagnes", landingspaginas: "Landingspagina's" };
@@ -12,6 +13,7 @@ const PREV_YEAR = new Date().getFullYear() - 1;
 const COMPARE_LABEL = { prev: "vorige periode", yoy: String(PREV_YEAR) };
 
 export default function Result({ data, filter, goTrends }) {
+  const { theme } = useUI();
   const { kpis, days, dims, countries } = data;
   const TARGET = getTargets().dailyConv;
   const [dimKey, setDimKey] = useState("kanalen");
@@ -120,7 +122,7 @@ export default function Result({ data, filter, goTrends }) {
           showSymbol: false, lineStyle: { width: 1.6, type: "dashed", color: COLORS.deepviolet }, itemStyle: { color: COLORS.deepviolet } },
       ],
     };
-  }, [days, TARGET, metric]);
+  }, [days, TARGET, metric, theme]);
 
   return (
     <div className="view">
@@ -219,6 +221,7 @@ function DevicesCard({ devices }) {
 }
 
 function DemografieCard({ demografie }) {
+  const { theme } = useUI(); void theme;
   if (!demografie) {
     return (
       <Card>
@@ -252,7 +255,7 @@ function DemografieCard({ demografie }) {
           <Chart height={104} style={{ width: 104 }} option={{
             tooltip: { ...TT, trigger: "item" },
             series: [{ type: "pie", radius: ["62%", "86%"],
-              itemStyle: { borderColor: "#fff", borderWidth: 2 }, label: { show: false },
+              itemStyle: { borderColor: COLORS.surface, borderWidth: 2 }, label: { show: false },
               data: demografie.gender.map((g) => ({ name: g.n, value: g.v, itemStyle: { color: GCOL[g.n] || COLORS.dim } })) }],
           }} />
           <div className="glegend">
@@ -380,6 +383,7 @@ function KpiStrip({ kpis, metric, setMetric }) {
 
 // Userflow en funnel in een kaart met toggle
 function FlowCard({ kpis, dims, flow, funnel }) {
+  const { theme } = useUI(); void theme;
   const [mode, setMode] = useState("flow");
   const [fpick, setFpick] = useState(null);
   const s = kpis.cur.s, conv = kpis.cur.c;
@@ -476,6 +480,7 @@ function FlowCard({ kpis, dims, flow, funnel }) {
 }
 
 function MapCard({ countries, cities }) {
+  const { theme } = useUI();
   const [mapReady, setMapReady] = useState(null); // null=laden, true=ok, false=fout
   const [view, setView] = useState("land");
   const [hint, setHint] = useState("Tik op een stad om in te zoomen");
@@ -515,7 +520,7 @@ function MapCard({ countries, cities }) {
       return p.name + "<br/>Sessies: " + fmtInt(co.value) + (co.e != null ? "<br/>Betrokkenheid: " + co.e + "%" : "");
     } },
     geo: { map: "world", roam: true, center: VIEWS[view].center, zoom: VIEWS[view].zoom,
-      itemStyle: { areaColor: "rgba(20,16,25,.05)", borderColor: "rgba(20,16,25,.16)", borderWidth: 0.5 },
+      itemStyle: { areaColor: COLORS.area, borderColor: COLORS.border, borderWidth: 0.5 },
       emphasis: { label: { show: false }, itemStyle: { areaColor: "rgba(230,0,126,.26)" } },
       select: { disabled: true }, regions, scaleLimit: { min: 1, max: 60 } },
     series: [{ name: "steden", type: "effectScatter", coordinateSystem: "geo",
@@ -524,7 +529,7 @@ function MapCard({ countries, cities }) {
       rippleEffect: { scale: 2.4, brushType: "stroke" },
       itemStyle: { color: COLORS.magenta, shadowColor: "rgba(230,0,126,.5)", shadowBlur: 8 },
       label: { show: false } }],
-  }), [view, mapReady, cityData]);
+  }), [view, mapReady, cityData, theme]);
 
   function onClick(p) {
     if (view === "land" && p.seriesType === "effectScatter" && chartRef.current) {
