@@ -321,3 +321,21 @@ th.sortable.on{color:var(--magenta)}
 .minibar i{display:block;height:100%;background:var(--magenta);border-radius:999px}
 .minibar i.ok{background:var(--pos)}
 .reportout{border-top:1px solid var(--inset);margin-top:12px;padding-top:10px}
+
+/* forecast targets als kaarten, alles binnen beeld */
+.tgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+.tgcard{border:1px solid var(--stroke);border-radius:13px;padding:12px 14px;background:#fff;min-width:0}
+.tgl{font-family:'Space Grotesk';font-weight:600;font-size:13px}
+.tgvals{display:flex;align-items:flex-end;justify-content:space-between;gap:10px;margin:8px 0}
+.tgreal .mono{font-family:'Space Grotesk';font-weight:700;font-size:17px}
+.tgreal em,.tgin em{display:block;font-style:normal;font-family:'IBM Plex Mono';font-size:8px;letter-spacing:.06em;text-transform:uppercase;color:var(--mist);margin-top:2px}
+.tgin{text-align:right}
+.tgcard .tin{width:96px;border:1px solid var(--stroke);border-radius:8px;background:var(--inset);padding:6px 9px;font-family:'Space Grotesk';font-weight:700;font-size:15px;text-align:right;color:var(--magenta);outline:none}
+.tgcard .tin:focus{border-color:var(--magenta);background:#fff}
+.tgcard .minibar{width:100%;height:6px}
+.tgpct{font-size:9.5px;color:var(--mist);margin-top:6px}
+.fctrls{display:flex;gap:16px;flex-wrap:wrap;margin-top:12px;padding-top:12px;border-top:1px solid var(--inset)}
+.fctrls label{font-family:'IBM Plex Mono';font-size:10px;letter-spacing:.04em;text-transform:uppercase;color:var(--mist);display:flex;align-items:center;gap:8px}
+.fctrls .tin{width:74px;border:1px solid var(--stroke);border-radius:8px;background:#fff;padding:6px 8px;font-family:'IBM Plex Mono';font-size:12px;text-align:right;color:var(--ink);outline:none}
+.fctrls .tin:focus{border-color:var(--magenta)}
+@media(max-width:880px){ .tgrid{grid-template-columns:1fr} }
