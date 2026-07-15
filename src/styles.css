@@ -464,3 +464,14 @@ th.sortable.on{color:var(--brand-ink)}
 .rp-recs{margin:0;padding-left:18px}
 .rp-recs li{font-size:12.5px;line-height:1.6;margin-bottom:5px}
 @media(max-width:880px){ .rp-kpis{grid-template-columns:1fr 1fr} }
+
+/* apparaten compact: 3 op een rij, statistiek eronder */
+.devcompact{padding-top:12px;padding-bottom:12px}
+.devrow{display:flex;gap:10px}
+.devitem{flex:1;text-align:center;padding:4px 2px}
+.devitem+.devitem{border-left:1px solid var(--inset)}
+.devtop{display:flex;align-items:center;justify-content:center;gap:6px;color:var(--mist)}
+.devtop svg{width:15px;height:15px;stroke:var(--brand-ink);fill:none;stroke-width:2;stroke-linejoin:round}
+.devtop span{font-family:'Space Grotesk';font-weight:600;font-size:12px;color:var(--ink)}
+.devitem .devpct{font-family:'Space Grotesk';font-weight:700;font-size:22px;margin-top:5px}
+.devitem .devcr{font-family:'IBM Plex Mono';font-size:9.5px;color:var(--mist);margin-top:2px}
