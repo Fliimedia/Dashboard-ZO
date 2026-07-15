@@ -1,6 +1,6 @@
 // Gedeelde targets, bewaard in localStorage en overal in de app gebruikt.
 const KEY = "pos_targets";
-const DEFAULTS = { growthPct: 15, dailyConv: 25 };
+const DEFAULTS = { growthPct: 15, dailyConv: 25, tVisitors: 14000, tConv: 620, tSpend: 4500, tReach: 90000 };
 
 export function getTargets() {
   try {
