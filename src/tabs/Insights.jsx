@@ -1,8 +1,52 @@
 import { useState } from "react";
 import { Card, fmtInt, fmtPctDelta } from "../components/ui.jsx";
-import { PERIOD_LABEL, KEYWORDS } from "../data.js";
+import { PERIOD_LABEL, KEYWORDS, BRAND } from "../data.js";
 
 const CTX_KEY = "pos_report_context";
+
+function ReportView({ r }) {
+  if (r && r.text) return <p className="rp-prose">{r.text}</p>;
+  if (!r) return null;
+  return (
+    <div className="rp">
+      <div className="rp-head">
+        <div className="rp-title disp">{r.title}</div>
+        <div className="rp-sub">{r.sub}</div>
+      </div>
+      <div className="rp-kpis">
+        {r.kpis.map((k) => (
+          <div className="rp-kpi" key={k.l}>
+            <div className="rp-kl">{k.l}</div>
+            <div className="rp-kv disp">{k.v}</div>
+            {k.d != null && <div className={"rp-kd " + (k.d >= 0 ? "up" : "down")}>{k.d >= 0 ? "+" : ""}{k.d}%</div>}
+          </div>
+        ))}
+      </div>
+      <p className="rp-prose">{r.intro}</p>
+      {r.tables.map((t) => (
+        <div className="rp-block" key={t.title}>
+          <div className="rp-h">{t.title}</div>
+          <table className="rp-table">
+            <thead><tr>{t.cols.map((c, i) => <th key={c} className={i ? "num" : ""}>{c}</th>)}</tr></thead>
+            <tbody>{t.rows.map((row, ri) => (
+              <tr key={ri}>{row.map((cell, ci) => <td key={ci} className={ci ? "num mono" : ""}>{cell}</td>)}</tr>
+            ))}</tbody>
+          </table>
+        </div>
+      ))}
+      <div className="rp-block">
+        <div className="rp-h">Aanbevelingen</div>
+        <ol className="rp-recs">{r.recs.map((x, i) => <li key={i}>{x}</li>)}</ol>
+      </div>
+      {r.context && (
+        <div className="rp-block">
+          <div className="rp-h">Context van het team</div>
+          <p className="rp-prose">{r.context}</p>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function Insights({ data, period = "maand", compare = "prev" }) {
   const plabel = PERIOD_LABEL[period] || "deze periode";
@@ -118,8 +162,30 @@ export default function Insights({ data, period = "maand", compare = "prev" }) {
     d: "Van elke duizend sessies leiden er " + Math.round(rate * 10) + " tot een aanmelding. " + (rate < 3 ? "Onder de 3% is er ruimte in het aanvraagpad." : "Dat is een gezond niveau; bewaken bij schalen."),
     score: rate < 3 ? 20 : 5 });
 
+  // Trends: belangrijkste zoekwoord plus grootste stijger en daler in zoekvraag, met context
+  if (KEYWORDS && KEYWORDS.length) {
+    const topKw = [...KEYWORDS].sort((a, b) => b.v - a.v)[0];
+    const upKw = [...KEYWORDS].sort((a, b) => b.c - a.c)[0];
+    const downKw = [...KEYWORDS].sort((a, b) => a.c - b.c)[0];
+    if (topKw) cand.push({
+      ic: IC.search, imp: "middel", m: fmtInt(topKw.v),
+      t: "Grootste zoekvraag: " + topKw.k,
+      d: "Met " + fmtInt(topKw.v) + " zoekopdrachten per maand is dit de belangrijkste term in de categorie. Zorg dat een sterke landingspagina exact op deze intentie inspeelt.",
+      score: 14 });
+    if (upKw && upKw.c > 0) cand.push({
+      ic: IC.trend, imp: upKw.c > 25 ? "hoog" : "middel", m: "+" + upKw.c + "%",
+      t: "Sterkste stijger in zoekvraag: " + upKw.k,
+      d: "De vraag naar \"" + upKw.k + "\" groeit " + upKw.c + "%, waarschijnlijk seizoensgebonden of door een nieuwstrend. Speel hierop in met content voordat concurrenten de term claimen.",
+      score: 16 + upKw.c / 5 });
+    if (downKw && downKw.c < 0) cand.push({
+      ic: IC.trend, imp: "laag", m: downKw.c + "%",
+      t: "Sterkste daler in zoekvraag: " + downKw.k,
+      d: "De vraag naar \"" + downKw.k + "\" koelt af met " + Math.abs(downKw.c) + "%, mogelijk na een piek of door verschuivend gedrag. Verlaag hier de nadruk en verschuif budget naar stijgende termen.",
+      score: 8 });
+  }
+
   // Sorteer op relevantie en toon de sterkste zes
-  const insights = cand.sort((a, b) => b.score - a.score).slice(0, 6);
+  const insights = cand.sort((a, b) => b.score - a.score).slice(0, 8);
 
     function copyReport() {
     const txt = "Business insights, " + plabel + "\n\n" + insights.map((i) => "[" + i.imp + "] " + i.t + "\n" + i.d).join("\n\n");
@@ -147,24 +213,48 @@ export default function Insights({ data, period = "maand", compare = "prev" }) {
 
   // Bouw een compleet rapport lokaal uit de echte cijfers. Geen invoer vereist.
   function buildReport() {
-    const topCh = [...dims.kanalen].sort((a, b) => b.s - a.s)[0];
-    const topCa2 = [...dims.campagnes].sort((a, b) => b.c - a.c)[0];
-    const bestLp = [...dims.landingspaginas].sort((a, b) => b.c - a.c)[0];
-    const P = [];
-    P.push("Rapport, " + plabel + ".");
-    P.push("");
-    P.push("Kerncijfers. In de " + plabel + " waren er " + fmtInt(kpis.cur.s) + " sessies van " + fmtInt(kpis.cur.u) + " gebruikers, met " + fmtInt(kpis.cur.c) + " conversies. Dat is een conversieratio van " + String(rate).replace(".", ",") + "%. Het verkeer " + (delta >= 0 ? "steeg" : "daalde") + " " + Math.abs(delta) + "% tegenover " + cmp + ", conversies " + (cdelta >= 0 ? "stegen" : "daalden") + " " + Math.abs(cdelta) + "%.");
-    P.push("");
-    P.push("Kanalen. " + (topCh ? topCh.n + " leverde het meeste verkeer met " + fmtInt(topCh.s) + " sessies." : "") + (topCa2 ? " De campagne " + topCa2.n + " droeg het meest bij aan conversies (" + fmtInt(topCa2.c) + ")." : ""));
-    P.push("");
-    P.push("Pagina's. " + (bestLp ? bestLp.n + " converteert het best en verdient de meeste aandacht in optimalisatie." : "") + (weakCh ? " Het kanaal " + weakCh.n + " blijft achter in betrokkenheid (" + weakCh.e + "%) en is het duidelijkste verbeterpunt." : ""));
-    P.push("");
-    P.push("Aanbevelingen.");
-    P.push("1. Schaal " + (topCa2 ? topCa2.n : "de best presterende campagne") + " op, dit is de snelste route naar groei binnen het budget.");
-    P.push("2. Versterk de call to action op " + (bestLp ? bestLp.n : "de best converterende pagina") + " en test varianten van de kop.");
-    P.push("3. Verbeter de aansluiting tussen " + (weakCh ? weakCh.n : "het zwakste kanaal") + " en de landingspagina om betrokkenheid te verhogen.");
-    if (ctx && ctx.trim()) { P.push(""); P.push("Context van het team. " + ctx.trim()); }
-    return P.join("\n");
+    const topChannels = [...dims.kanalen].sort((a, b) => b.s - a.s).slice(0, 5);
+    const topCamps = [...dims.campagnes].sort((a, b) => b.c - a.c).slice(0, 4);
+    const topPages = [...dims.landingspaginas].sort((a, b) => b.c - a.c).slice(0, 5);
+    const topCa2 = topCamps[0], bestLp = topPages[0], topCh = topChannels[0];
+    const now = new Date();
+    const dstr = now.toLocaleDateString("nl-NL", { day: "numeric", month: "long", year: "numeric" });
+    return {
+      title: "Performance rapport",
+      sub: BRAND.name + " / " + plabel + " / opgesteld " + dstr,
+      kpis: [
+        { l: "Sessies", v: fmtInt(kpis.cur.s), d: delta },
+        { l: "Gebruikers", v: fmtInt(kpis.cur.u), d: fmtPctDelta(kpis.cur.u, kpis.prev.u) },
+        { l: "Conversies", v: fmtInt(kpis.cur.c), d: cdelta },
+        { l: "Conversieratio", v: String(rate).replace(".", ",") + "%", d: null },
+      ],
+      intro: "In de " + plabel + " trok de site " + fmtInt(kpis.cur.s) + " sessies van " + fmtInt(kpis.cur.u) +
+        " gebruikers, met " + fmtInt(kpis.cur.c) + " conversies. Het verkeer " + (delta >= 0 ? "steeg" : "daalde") +
+        " " + Math.abs(delta) + "% tegenover " + cmp + " en conversies " + (cdelta >= 0 ? "stegen" : "daalden") +
+        " " + Math.abs(cdelta) + "%.",
+      tables: [
+        { title: "Kanalen", cols: ["Kanaal", "Sessies", "Conversies"], rows: topChannels.map((r) => [r.n, fmtInt(r.s), fmtInt(r.c)]) },
+        { title: "Campagnes", cols: ["Campagne", "Conversies", "Waarde"], rows: topCamps.map((r) => [r.n, fmtInt(r.c), "\u20ac" + fmtInt(r.w)]) },
+        { title: "Landingspagina's", cols: ["Pagina", "Sessies", "Conversies"], rows: topPages.map((r) => [r.n, fmtInt(r.s), fmtInt(r.c)]) },
+      ],
+      recs: [
+        "Schaal " + (topCa2 ? topCa2.n : "de best presterende campagne") + " op; dit is de snelste route naar groei binnen het budget.",
+        "Versterk de call to action op " + (bestLp ? bestLp.n : "de best converterende pagina") + " en test varianten van de kop.",
+        "Verbeter de aansluiting tussen " + (weakCh ? weakCh.n : "het zwakste kanaal") + " en de landingspagina om betrokkenheid te verhogen.",
+      ],
+      context: ctx && ctx.trim() ? ctx.trim() : null,
+    };
+  }
+
+  // Platte tekst voor de kopieerknop
+  function reportToText(r) {
+    if (!r || typeof r === "string") return r || "";
+    const L = [r.title, r.sub, "", r.intro, ""];
+    L.push("Kerncijfers: " + r.kpis.map((k) => k.l + " " + k.v + (k.d != null ? " (" + (k.d >= 0 ? "+" : "") + k.d + "%)" : "")).join(", "), "");
+    r.tables.forEach((t) => { L.push(t.title); t.rows.forEach((row) => L.push("  " + row.join("  |  "))); L.push(""); });
+    L.push("Aanbevelingen:"); r.recs.forEach((x, i) => L.push((i + 1) + ". " + x));
+    if (r.context) { L.push("", "Context van het team: " + r.context); }
+    return L.join("\n");
   }
 
   async function generate() {
@@ -181,7 +271,7 @@ export default function Insights({ data, period = "maand", compare = "prev" }) {
       });
       if (res.ok) {
         const out = await res.json();
-        if (out && out.ok !== false && (out.report || out.text)) { setReport(out.report || out.text); setBusy(false); return; }
+        if (out && out.ok !== false && (out.report || out.text)) { setReport({ text: out.report || out.text }); setBusy(false); return; }
       }
     } catch (e) { /* val terug op lokaal */ }
     setReport(local);
@@ -206,11 +296,11 @@ export default function Insights({ data, period = "maand", compare = "prev" }) {
         </label>
         {report && (
           <div className="reportout">
-            <div className="hrow" style={{ marginBottom: 6 }}>
+            <div className="hrow" style={{ marginBottom: 8 }}>
               <div className="h2">Rapport</div>
-              <button className="btn ghost" onClick={() => { try { navigator.clipboard.writeText(report); } catch {} }}>Kopieer</button>
+              <button className="btn ghost" onClick={() => { try { navigator.clipboard.writeText(reportToText(report)); } catch {} }}>Kopieer</button>
             </div>
-            <p style={{ fontSize: 13, lineHeight: 1.65, whiteSpace: "pre-wrap" }}>{report}</p>
+            <ReportView r={report} />
           </div>
         )}
       </Card>
