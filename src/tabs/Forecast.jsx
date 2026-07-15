@@ -5,6 +5,7 @@ import { Card, Seg, fmtInt } from "../components/ui.jsx";
 import { AX, TT, SPLIT, COLORS } from "../echartsSetup.js";
 import { getTargets, setTargets } from "../targets.js";
 import { PERIOD_LABEL } from "../data.js";
+import { useUI } from "../i18n.js";
 
 const KPIS = [
   { id: "users", label: "Gebruikers" },
@@ -14,6 +15,7 @@ const KPIS = [
 
 export default function Forecast({ data, period = "maand" }) {
   const plabel = PERIOD_LABEL[period] || "deze periode";
+  const { theme } = useUI();
   const { kpis, days, periods } = data;
   const [kpi, setKpi] = useState("conv");
   const [t, setT] = useState(getTargets());
@@ -80,7 +82,7 @@ export default function Forecast({ data, period = "maand" }) {
           lineStyle: { width: 2, type: "dashed", color: COLORS.deepviolet }, itemStyle: { color: COLORS.deepviolet } },
       ];
     })(),
-  }), [days, series, kpi, targetLine]);
+  }), [days, series, kpi, targetLine, theme]);
 
   // Haalbaarheid: projectie einde periode tegen het periodetarget
   const achieve = useMemo(() => {
