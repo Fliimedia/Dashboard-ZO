@@ -3,7 +3,7 @@ import * as echarts from "echarts";
 import Chart from "../components/Chart.jsx";
 import { Card, Seg, fmtInt, fmtDur, fmtPctDelta } from "../components/ui.jsx";
 import { AX, TT, SPLIT, COLORS } from "../echartsSetup.js";
-import { CITIES, PERIOD_LABEL } from "../data.js";
+import { CITIES, PERIOD_LABEL, KEYWORDS } from "../data.js";
 import { getTargets } from "../targets.js";
 
 const DIM_LABELS = { kanalen: "Kanalen", campagnes: "Campagnes", landingspaginas: "Landingspagina's" };
@@ -25,12 +25,48 @@ export default function Result({ data, filter, goTrends }) {
 
   // AI Summary: hoogtepunten uit de data
   const summary = useMemo(() => {
-    const topCh = [...dims.kanalen].sort((a, b) => b.s - a.s)[0];
-    const topCa = [...dims.campagnes].sort((a, b) => b.s - a.s)[0];
-    const topLp = [...dims.landingspaginas].sort((a, b) => b.s - a.s)[0];
-    const topLand = countries && countries[0];
-    return { topCh, topCa, topLp, topLand };
-  }, [dims, countries]);
+    const TMAP = { kanaal: "kanalen", campagne: "campagnes", landingspagina: "landingspaginas" };
+    const pool = [];
+    const add = (rows, type) => (rows || []).forEach((r) => pool.push({
+      n: r.n, type, jump: TMAP[type] || null,
+      vis: r.u ?? 0, pvis: r.pu ?? (r.u ?? 0), sal: r.c ?? 0, psal: r.pc ?? (r.c ?? 0),
+    }));
+    add(dims.kanalen, "kanaal");
+    add(dims.campagnes, "campagne");
+    add(dims.landingspaginas, "landingspagina");
+    const kseed = (str) => { let x = 0; for (const ch of String(str)) x = (x * 31 + ch.charCodeAt(0)) >>> 0; return x; };
+    (KEYWORDS || []).forEach((k) => {
+      const g = kseed(k.k + "|" + filter.period);
+      const scale = 1 + (((g % 40) - 18) / 100);              // volume varieert per periode
+      const vis = Math.round((k.v ?? 0) * scale);
+      const trend = (k.c || 0) + (((g >>> 4) % 26) - 13);     // trend jitter per periode
+      const pvis = Math.max(1, Math.round(vis / (1 + trend / 100)));
+      pool.push({ n: k.k, type: "zoekwoord", jump: null, vis, pvis, sal: 0, psal: 0 });
+    });
+
+    // Toppers alleen uit gemeten site-entiteiten (zoekwoord = zoekvolume, geen site-bezoekers)
+    const sitePool = pool.filter((p) => p.type !== "zoekwoord");
+    const topVis = [...sitePool].sort((a, b) => b.vis - a.vis)[0];
+    const salePool = [...sitePool].filter((p) => p.sal > 0).sort((a, b) => b.sal - a.sal);
+    let topSal = salePool[0];
+    if (topSal && topVis && topSal.n === topVis.n && salePool[1]) topSal = salePool[1];
+
+    // Bewegers: kandidaten op bezoekers en op verkopen, met minimale basis tegen ruis
+    const moves = [];
+    pool.forEach((p) => {
+      if (p.pvis >= 200) { const d = p.vis - p.pvis; moves.push({ n: p.n, type: p.type, jump: p.jump, metric: "bezoekers", d, pct: Math.round((d / p.pvis) * 100) }); }
+      if (p.psal >= 12) { const d = p.sal - p.psal; moves.push({ n: p.n, type: p.type, jump: p.jump, metric: "verkopen", d, pct: Math.round((d / p.psal) * 100) }); }
+    });
+    const distinct = (list) => {
+      const seen = new Set(), out = [];
+      for (const m of list) { const key = m.n + m.metric; if (seen.has(m.n)) continue; seen.add(m.n); out.push(m); if (out.length === 2) break; }
+      return out;
+    };
+    const risers = distinct([...moves].filter((m) => m.pct > 0).sort((a, b) => b.pct - a.pct));
+    const fallers = distinct([...moves].filter((m) => m.pct < 0).sort((a, b) => a.pct - b.pct));
+
+    return { topVis, topSal, risers, fallers };
+  }, [dims, countries, filter.period]);
 
   function jumpTo(key) {
     setDimKey(key);
@@ -194,27 +230,58 @@ function DemografieCard({ demografie }) {
 
 function AISummary({ s, kpis, jumpTo, jumpMap, periodLabel }) {
   const I = {
-    ch: <svg viewBox="0 0 24 24"><path d="M5 12a7 7 0 0114 0" /><path d="M8.5 12a3.5 3.5 0 017 0" /><circle cx="12" cy="12" r="1.2" /><path d="M12 13v7" /></svg>,
-    ca: <svg viewBox="0 0 24 24"><path d="M3 11l14-5v12L3 13v-2z" /><path d="M11.6 16.8a3 3 0 01-5.8-1.6" /><path d="M17 8a4 4 0 010 8" /></svg>,
-    lp: <svg viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2" /><path d="M8 8h8M8 12h8M8 16h5" /></svg>,
-    geo: <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" /><path d="M3 12h18M12 3c3 3.5 3 14 0 18M12 3c-3 3.5-3 14 0 18" /></svg>,
+    vis: <svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2" /><path d="M3.5 19c.6-3 3-4.6 5.5-4.6S13.9 16 14.5 19" /><path d="M16 6.5a3 3 0 010 5.5M18.5 19c-.3-1.6-1-2.9-2-3.8" /></svg>,
+    sal: <svg viewBox="0 0 24 24"><path d="M4 5h2l1.5 11h9L18 8H7" /><circle cx="9" cy="20" r="1.3" /><circle cx="16" cy="20" r="1.3" /></svg>,
+    up: <svg viewBox="0 0 24 24"><path d="M3 17l6-6 4 4 7-7" /><path d="M17 8h4v4" /></svg>,
+    down: <svg viewBox="0 0 24 24"><path d="M3 7l6 6 4-4 7 7" /><path d="M17 16h4v-4" /></svg>,
   };
-  const items = [
-    { ic: I.ch, ot: <>Top kanaal: {s.topCh?.n}, {fmtInt(s.topCh?.s || 0)} sessies</>, od: "kanalen / bekijk tabel", go: () => jumpTo("kanalen") },
-    { ic: I.ca, ot: <>Sterkste campagne: {s.topCa?.n}, {fmtInt(s.topCa?.s || 0)} sessies</>, od: "campagnes / bekijk tabel", go: () => jumpTo("campagnes") },
-    { ic: I.lp, ot: <>Beste landingspagina: {s.topLp?.n}, {fmtInt(s.topLp?.s || 0)} sessies</>, od: "landingspagina's / bekijk tabel", go: () => jumpTo("landingspaginas") },
-    { ic: I.geo, ot: <>Sterkste markt: {s.topLand?.name || "onbekend"}, {fmtInt(s.topLand?.value || 0)} sessies{s.topLand?.e != null ? ", " + s.topLand.e + "% betrokken" : ""}</>, od: "locatie / bekijk kaart", go: jumpMap },
-  ];
+  const typeLabel = { kanaal: "kanaal", campagne: "campagne", landingspagina: "landingspagina", zoekwoord: "zoekwoord" };
+  const goItem = (it) => it && it.jump ? () => jumpTo(it.jump) : undefined;
+
+  const moverLine = (m) => (
+    <div className="mline" key={m.n + m.metric}>
+      <span className={"mpct " + (m.pct >= 0 ? "up" : "down")}>{m.pct >= 0 ? "+" : ""}{m.pct}%</span>
+      <span className="mname">{m.n}</span>
+      <span className="mmeta">{typeLabel[m.type]} / {m.metric}</span>
+    </div>
+  );
+
+  const items = [];
+  if (s.topVis) items.push({
+    ic: I.vis, cls: "",
+    ot: <>Meeste bezoekers: {s.topVis.n}</>,
+    od: typeLabel[s.topVis.type] + " / " + fmtInt(s.topVis.vis) + " bezoekers",
+    go: goItem(s.topVis),
+  });
+  if (s.topSal) items.push({
+    ic: I.sal, cls: "",
+    ot: <>Meeste verkopen: {s.topSal.n}</>,
+    od: typeLabel[s.topSal.type] + " / " + fmtInt(s.topSal.sal) + " verkopen",
+    go: goItem(s.topSal),
+  });
+  if (s.risers && s.risers.length) items.push({
+    ic: I.up, cls: "grp",
+    ot: <>Grootste stijgers</>,
+    lines: s.risers.map(moverLine),
+    go: goItem(s.risers[0]),
+  });
+  if (s.fallers && s.fallers.length) items.push({
+    ic: I.down, cls: "grp",
+    ot: <>Grootste dalers</>,
+    lines: s.fallers.map(moverLine),
+    go: goItem(s.fallers[0]),
+  });
+
   return (
     <Card>
       <div className="h1 disp">AI Summary <span className="demobadge" style={{ marginLeft: 8, verticalAlign: "middle" }}>{periodLabel}</span></div>
       <div className="oitems">
         {items.map((it, i) => (
-          <div className="oitem" key={i} onClick={it.go}>
+          <div className={"oitem " + it.cls + (it.go ? "" : " nolink")} key={i} onClick={it.go}>
             <div className="oic">{it.ic}</div>
-            <div>
+            <div style={{ minWidth: 0, flex: 1 }}>
               <div className="ot">{it.ot}</div>
-              <div className="od">{it.od}</div>
+              {it.lines ? <div className="mlines">{it.lines}</div> : <div className="od">{it.od}</div>}
             </div>
           </div>
         ))}
