@@ -177,6 +177,8 @@ export function demoData(period = "maand", compare = "prev") {
       s, c: Math.max(4, Math.round(s * 0.042 + ((i % 7 < 5) ? 3 : -4))),
       e: Math.min(82, 54 + Math.round((s - 420) / 24)),
       u: Math.round(s * 0.62), w: Math.round(s * 0.042 * 33),
+      spend: Math.round(s * 0.31 + ((i % 7 < 5) ? 40 : -30)),
+      reach: Math.round(s * 6.4 * (1 + (((i * 7) % 30) - 15) / 300)),
     });
   }
   // KPI-totalen zijn de som van de dagreeks, zodat grafiek en scorecards altijd kloppen
