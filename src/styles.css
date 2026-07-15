@@ -339,3 +339,11 @@ th.sortable.on{color:var(--magenta)}
 .fctrls .tin{width:74px;border:1px solid var(--stroke);border-radius:8px;background:#fff;padding:6px 8px;font-family:'IBM Plex Mono';font-size:12px;text-align:right;color:var(--ink);outline:none}
 .fctrls .tin:focus{border-color:var(--magenta)}
 @media(max-width:880px){ .tgrid{grid-template-columns:1fr} }
+
+/* forecast haalbaarheid */
+.achieve{display:flex;align-items:center;gap:14px;margin-top:12px;padding:12px 14px;border-radius:13px;border:1px solid var(--stroke)}
+.achieve.ok{background:rgba(14,159,110,.06);border-color:rgba(14,159,110,.4)}
+.achieve.no{background:rgba(224,36,90,.05);border-color:rgba(224,36,90,.35)}
+.acbig{font-family:'Space Grotesk';font-weight:700;font-size:26px;flex:none}
+.achieve.ok .acbig{color:var(--pos)} .achieve.no .acbig{color:var(--neg)}
+.actxt{font-size:12.5px;line-height:1.5;color:var(--ink)}
