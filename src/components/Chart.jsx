@@ -19,7 +19,7 @@ export default function Chart({ option, height = 200, onInit, onClick, style }) 
   }, []);
 
   useEffect(() => {
-    if (chartRef.current && option) chartRef.current.setOption(option, { notMerge: false });
+    if (chartRef.current && option) chartRef.current.setOption(option, { notMerge: true });
   }, [option]);
 
   useEffect(() => {
