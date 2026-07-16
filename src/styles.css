@@ -490,6 +490,6 @@ th.sortable.on{color:var(--brand-ink)}
 /* inklapbare AI summary kop */
 .aihead{width:100%;display:flex;align-items:center;justify-content:space-between;gap:10px;background:none;border:none;padding:0;cursor:pointer;color:var(--ink);text-align:left}
 .aihead .h1{margin:0}
-.aichev{width:20px;height:20px;stroke:var(--mist);fill:none;stroke-width:2;stroke-linejoin:round;stroke-linecap:round;transition:transform .2s ease;flex:none}
+.aichev{width:20px;height:20px;min-width:20px;color:var(--mist);stroke:currentColor;fill:none;stroke-width:2;stroke-linejoin:round;stroke-linecap:round;transition:transform .2s ease;flex:none}
 .aihead.open .aichev{transform:rotate(180deg)}
-.aihead:hover .aichev{stroke:var(--brand-ink)}
+.aihead:hover .aichev{color:var(--brand-ink)}
