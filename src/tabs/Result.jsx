@@ -4,17 +4,18 @@ import Chart from "../components/Chart.jsx";
 import { Card, Seg, fmtInt, fmtDur, fmtPctDelta } from "../components/ui.jsx";
 import { AX, TT, SPLIT, COLORS } from "../echartsSetup.js";
 import { CITIES, PERIOD_LABEL, KEYWORDS } from "../data.js";
-import { useUI } from "../i18n.js";
+import { useUI, useT } from "../i18n.js";
 import AuroraChart from "../components/AuroraChart.jsx";
 import { getTargets } from "../targets.js";
 
-const DIM_LABELS = { kanalen: "Kanalen", campagnes: "Campagnes", landingspaginas: "Landingspagina's" };
+const DIM_KEYS = { kanalen: "channels", campagnes: "campaigns", landingspaginas: "landingpages" };
 
 const PREV_YEAR = new Date().getFullYear() - 1;
 const COMPARE_LABEL = { prev: "vorige periode", yoy: String(PREV_YEAR) };
 
 export default function Result({ data, filter, goTrends }) {
   const { theme } = useUI();
+  const t = useT();
   const { kpis, days, dims, countries } = data;
   const TARGET = getTargets().dailyConv;
   const [dimKey, setDimKey] = useState("kanalen");
@@ -24,7 +25,7 @@ export default function Result({ data, filter, goTrends }) {
   const tableRef = useRef(null);
   const mapRef = useRef(null);
   function jumpMap() { setTimeout(() => mapRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 50); }
-  const cmp = COMPARE_LABEL[filter.compare];
+  const cmp = filter.compare === "yoy" ? String(PREV_YEAR) : t("prev_period");
 
   // AI Summary: hoogtepunten uit de data
   const summary = useMemo(() => {
@@ -70,19 +71,9 @@ export default function Result({ data, filter, goTrends }) {
 
     // Context per beweger: plausibele oorzaak op basis van type en richting
     const reason = (m) => {
-      const up = m.pct >= 0;
-      if (m.type === "zoekwoord") return up
-        ? "de zoekvraag naar deze term neemt toe, waarschijnlijk seizoensgebonden of door een nieuwstrend"
-        : "de zoekvraag koelt af, mogelijk na een piek of door meer concurrentie op deze term";
-      if (m.type === "kanaal") return up
-        ? "dit kanaal trekt aan, vermoedelijk door recente campagne-inzet of betere content"
-        : "dit kanaal verliest terrein, mogelijk door lagere inzet of verschoven budget";
-      if (m.type === "campagne") return up
-        ? "de campagne presteert beter, waarschijnlijk door budget of een sterkere creative"
-        : "de campagne zwakt af, mogelijk door vermoeidheid van de doelgroep of lager budget";
-      return up
-        ? "deze pagina wint aan kracht, vermoedelijk door betere vindbaarheid of interne verwijzingen"
-        : "deze pagina verliest verkeer of conversie, mogelijk door een wijziging of minder instroom";
+      const d = m.pct >= 0 ? "up" : "down";
+      const map = { zoekwoord: "kw", kanaal: "ch", campagne: "ca", landingspagina: "lp" };
+      return t("why_" + (map[m.type] || "lp") + "_" + d);
     };
     const withReason = (arr) => arr.map((m) => ({ ...m, why: reason(m) }));
 
@@ -96,17 +87,17 @@ export default function Result({ data, filter, goTrends }) {
 
   // dagelijkse grafiek, reageert op de gekozen scorecard-metric
   const METRIC = {
-    s: { label: "Sessies", key: "s", target: TARGET, pct: false },
-    u: { label: "Gebruikers", key: "u", target: Math.round(TARGET / 0.045 * 0.62), pct: false },
-    c: { label: "Conversies", key: "c", target: TARGET, pct: false },
-    e: { label: "Betrokkenheid", key: "e", target: getTargets().engTarget || 65, pct: true },
+    s: { label: t("sessions"), key: "s", target: TARGET, pct: false },
+    u: { label: t("users"), key: "u", target: Math.round(TARGET / 0.045 * 0.62), pct: false },
+    c: { label: t("conversions"), key: "c", target: TARGET, pct: false },
+    e: { label: t("engagement"), key: "e", target: getTargets().engTarget || 65, pct: true },
   };
   const dayMetric = METRIC[metric];
   const dayVals = days.map((d) => d[dayMetric.key] ?? 0);
 
   return (
     <div className="view">
-      <AISummary s={summary} kpis={kpis} jumpTo={jumpTo} jumpMap={jumpMap} periodLabel={PERIOD_LABEL[filter.period]} />
+      <AISummary s={summary} kpis={kpis} jumpTo={jumpTo} jumpMap={jumpMap} periodLabel={t("p_" + ({ jaar: "year", kwartaal: "quarter", maand: "month", week: "week" }[filter.period] || "month"))} />
 
       <div className="ctrlrow">
         <Seg value={filter.period} onChange={filter.setPeriod} options={[
@@ -114,13 +105,13 @@ export default function Result({ data, filter, goTrends }) {
           { value: "maand", label: "M" }, { value: "week", label: "D" },
         ]} />
         <Seg value={filter.compare} onChange={filter.setCompare} options={[
-          { value: "prev", label: "Vs vorige periode" }, { value: "yoy", label: "Vs " + PREV_YEAR },
+          { value: "prev", label: t("vs_prev") }, { value: "yoy", label: t("vs_year") + PREV_YEAR },
         ]} />
       </div>
 
       <Card>
-        <div className="h1 disp">{METRIC[metric].label} per dag</div>
-        <div className="h2"><b>{fmtPctDelta(kpis.cur.s, kpis.prev.s) >= 0 ? "+" : ""}{fmtPctDelta(kpis.cur.s, kpis.prev.s)}%</b> sessies tegenover {cmp}</div>
+        <div className="h1 disp">{METRIC[metric].label} {t("per_day")}</div>
+        <div className="h2"><b>{fmtPctDelta(kpis.cur.s, kpis.prev.s) >= 0 ? "+" : ""}{fmtPctDelta(kpis.cur.s, kpis.prev.s)}%</b> {t("sessions").toLowerCase()} {t("vs_word")} {cmp}</div>
         <AuroraChart days={days} values={dayVals} target={dayMetric.target}
           unit={dayMetric.pct ? "%" : ""} label={dayMetric.label} theme={theme} height={216} />
       </Card>
@@ -131,16 +122,16 @@ export default function Result({ data, filter, goTrends }) {
         <Card>
           <div ref={tableRef} className="seghead" style={{ scrollMarginTop: 12 }}>
             <Seg value={dimKey} onChange={setDimKey} options={[
-              { value: "kanalen", label: "Kanalen" },
-              { value: "campagnes", label: "Campagnes" },
-              { value: "landingspaginas", label: "Landingspagina's" },
+              { value: "kanalen", label: t("channels") },
+              { value: "campagnes", label: t("campaigns") },
+              { value: "landingspaginas", label: t("landingpages") },
             ]} />
           </div>
           <div className="tscroll">
             <table>
               <thead><tr>
-                <th>Naam</th>
-                {[["u","Gebruikers"],["s","Sessies"],["t","Duur"],["e","Eng. %"],["c","Conv."],["w","Waarde"]].map(([k,l]) => (
+                <th>{t("name")}</th>
+                {[["u",t("users")],["s",t("sessions")],["t",t("duration")],["e",t("engagement")],["c",t("conv_short")],["w",t("value")]].map(([k,l]) => (
                   <th key={k} className={"num sortable" + (sort.k === k ? " on" : "")} onClick={() => onSort(k)}>
                     {l}{sort.k === k ? (sort.dir < 0 ? " \u2193" : " \u2191") : ""}
                   </th>
@@ -175,6 +166,7 @@ export default function Result({ data, filter, goTrends }) {
 }
 
 function DevicesCard({ devices }) {
+  const t = useT();
   if (!devices || !devices.length) return null;
   const total = devices.reduce((a, b) => a + b.u, 0) || 1;
   const ICON = {
@@ -182,7 +174,7 @@ function DevicesCard({ devices }) {
     desktop: <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="12" rx="2" /><path d="M8 20h8M12 16v4" /></svg>,
     tablet: <svg viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="2" /><path d="M11 18h2" /></svg>,
   };
-  const NL = { mobile: "Mobiel", desktop: "Desktop", tablet: "Tablet" };
+  const NL = { mobile: t("mobile"), desktop: t("desktop"), tablet: t("tablet") };
   return (
     <Card className="devcompact">
       <div className="devrow">
@@ -192,7 +184,7 @@ function DevicesCard({ devices }) {
             <div className="devitem" key={d.n}>
               <div className="devtop">{ICON[d.n] || ICON.desktop}<span>{NL[d.n] || d.n}</span></div>
               <div className="devpct disp">{pct}%</div>
-              <div className="devcr">conv. {String(d.cr).replace(".", ",")}%</div>
+              <div className="devcr">{t("conv_short")} {String(d.cr).replace(".", ",")}%</div>
             </div>
           );
         })}
@@ -203,13 +195,14 @@ function DevicesCard({ devices }) {
 
 function DemografieCard({ demografie }) {
   const { theme } = useUI(); void theme;
+  const t = useT();
   if (!demografie) {
     return (
       <Card>
-        <div className="h1 disp">Demografie</div>
-        <div className="h2">Leeftijd en geslacht</div>
+        <div className="h1 disp">{t("demographics")}</div>
+        <div className="h2">{t("age")} &amp; {t("gender")}</div>
         <div className="mapmsg" style={{ height: 140, textAlign: "center", padding: "0 14px" }}>
-          Nog geen demografische data beschikbaar. Zet Google Signals aan op de GA4-property; zodra Google voldoende data heeft, verschijnt dit automatisch.
+          {t("demographics_empty")}
         </div>
       </Card>
     );
@@ -218,8 +211,8 @@ function DemografieCard({ demografie }) {
   const GCOL = { male: COLORS.magenta, female: COLORS.magenta2 };
   return (
     <Card>
-      <div className="h1 disp">Demografie</div>
-      <div className="h2">Leeftijd en geslacht, uit GA4</div>
+      <div className="h1 disp">{t("demographics")}</div>
+      <div className="h2">{t("demographics_sub")}</div>
       <div className="demrow">
         <Chart height={176} style={{ flex: 1 }} option={{
           grid: { left: 44, right: 26, top: 4, bottom: 4 },
@@ -243,7 +236,7 @@ function DemografieCard({ demografie }) {
             {demografie.gender.map((g) => (
               <div className="g" key={g.n}>
                 <span className="swatch" style={{ background: GCOL[g.n] || COLORS.dim }} />
-                {g.n === "male" ? "Man" : g.n === "female" ? "Vrouw" : g.n} {Math.round((g.v / total) * 100)}%
+                {g.n === "male" ? t("male") : g.n === "female" ? t("female") : g.n} {Math.round((g.v / total) * 100)}%
               </div>
             ))}
           </div>
@@ -254,13 +247,15 @@ function DemografieCard({ demografie }) {
 }
 
 function AISummary({ s, kpis, jumpTo, jumpMap, periodLabel }) {
+  const t = useT();
   const I = {
     star: <svg viewBox="0 0 24 24"><path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9 6.8 19l1-5.8L3.5 9.2l5.9-.9z" /></svg>,
     up: <svg viewBox="0 0 24 24"><path d="M3 17l6-6 4 4 7-7" /><path d="M17 8h4v4" /></svg>,
     down: <svg viewBox="0 0 24 24"><path d="M3 7l6 6 4-4 7 7" /><path d="M17 16h4v-4" /></svg>,
   };
-  const TL = { kanaal: "het kanaal", campagne: "de campagne", landingspagina: "de landingspagina", zoekwoord: "het zoekwoord" };
-  const metric = (m) => m.metric === "verkopen" ? "verkopen" : "bezoekers";
+  const TL = { kanaal: t("tl_channel"), campagne: t("tl_campaign"), landingspagina: t("tl_landingpage"), zoekwoord: t("tl_keyword") };
+  const metric = (m) => m.metric === "verkopen" ? t("sales") : t("visitors");
+  const cap = (str) => str ? str.charAt(0).toUpperCase() + str.slice(1) : "";
   const jumpFor = (it) => it && it.jump ? () => jumpTo(it.jump) : undefined;
 
   const items = [];
@@ -270,32 +265,32 @@ function AISummary({ s, kpis, jumpTo, jumpMap, periodLabel }) {
     items.push({
       ic: I.star, go: jumpFor(s.topVis || s.topSal),
       text: <>
-        {s.topVis && <>De meeste bezoekers kwamen via <b>{s.topVis.n}</b>, goed voor {fmtInt(s.topVis.vis)} bezoekers in de {periodLabel}. </>}
-        {s.topSal && <>De meeste verkopen kwamen van <b>{s.topSal.n}</b> met {fmtInt(s.topSal.sal)} conversies, wat dit de sterkste bron voor omzet maakt.</>}
+        {s.topVis && <>{t("most_visitors")} <b>{s.topVis.n}</b>, {t("accounting_for")} {fmtInt(s.topVis.vis)} {t("visitors")} {t("in_the")} {periodLabel}. </>}
+        {s.topSal && <>{t("most_sales")} <b>{s.topSal.n}</b> {t("with_n")} {fmtInt(s.topSal.sal)} {t("conversions_lc")}, {t("strongest_source")}.</>}
       </>,
     });
   }
 
-  // Bullet 2: twee grootste stijgers, elk een zin met context
+  // Bullet 2: twee grootste stijgers
   if (s.risers && s.risers.length) {
     const [a, b] = s.risers;
     items.push({
       ic: I.up, go: jumpFor(a),
       text: <>
-        {a && <>De grootste stijger is {TL[a.type]} <b>{a.n}</b>, met {a.pct}% meer {metric(a)}; {a.why}. </>}
-        {b && <>Daarnaast groeide {TL[b.type]} <b>{b.n}</b> met {b.pct}% meer {metric(b)}, doordat {b.why}.</>}
+        {a && <>{t("biggest_riser")} {TL[a.type]} <b>{a.n}</b>: {a.pct}% {t("more")} {metric(a)}. {cap(a.why)}. </>}
+        {b && <>{t("also")} {TL[b.type]} <b>{b.n}</b>: {b.pct}% {t("more")} {metric(b)}. {cap(b.why)}.</>}
       </>,
     });
   }
 
-  // Bullet 3: twee grootste dalers, elk een zin met context
+  // Bullet 3: twee grootste dalers
   if (s.fallers && s.fallers.length) {
     const [a, b] = s.fallers;
     items.push({
       ic: I.down, go: jumpFor(a),
       text: <>
-        {a && <>De grootste daler is {TL[a.type]} <b>{a.n}</b>, met {Math.abs(a.pct)}% minder {metric(a)}; {a.why}. </>}
-        {b && <>Ook {TL[b.type]} <b>{b.n}</b> daalde met {Math.abs(b.pct)}% {metric(b)}, doordat {b.why}.</>}
+        {a && <>{t("biggest_faller")} {TL[a.type]} <b>{a.n}</b>: {Math.abs(a.pct)}% {t("less")} {metric(a)}. {cap(a.why)}. </>}
+        {b && <>{t("also")} {TL[b.type]} <b>{b.n}</b>: {Math.abs(b.pct)}% {t("less")} {metric(b)}. {cap(b.why)}.</>}
       </>,
     });
   }
@@ -341,12 +336,13 @@ function CountUp({ value, suffix = "" }) {
 }
 
 function KpiStrip({ kpis, metric, setMetric }) {
+  const t = useT();
   const { cur, prev } = kpis;
   const items = [
-    { l: "Sessies", v: cur.s, sfx: "", d: fmtPctDelta(cur.s, prev.s), m: "s" },
-    { l: "Gebruikers", v: cur.u, sfx: "", d: fmtPctDelta(cur.u, prev.u), m: "u" },
-    { l: "Conversies", v: cur.c, sfx: "", d: fmtPctDelta(cur.c, prev.c), m: "c" },
-    { l: "Betrokkenheid", v: cur.e, sfx: "%", d: fmtPctDelta(cur.e, prev.e), m: "e" },
+    { l: t("sessions"), v: cur.s, sfx: "", d: fmtPctDelta(cur.s, prev.s), m: "s" },
+    { l: t("users"), v: cur.u, sfx: "", d: fmtPctDelta(cur.u, prev.u), m: "u" },
+    { l: t("conversions"), v: cur.c, sfx: "", d: fmtPctDelta(cur.c, prev.c), m: "c" },
+    { l: t("engagement"), v: cur.e, sfx: "%", d: fmtPctDelta(cur.e, prev.e), m: "e" },
   ];
   return (
     <Card className="kpis">
@@ -365,6 +361,7 @@ function KpiStrip({ kpis, metric, setMetric }) {
 // Userflow en funnel in een kaart met toggle
 function FlowCard({ kpis, dims, flow, funnel }) {
   const { theme } = useUI(); void theme;
+  const t = useT();
   const [mode, setMode] = useState("flow");
   const [fpick, setFpick] = useState(null);
   const s = kpis.cur.s, conv = kpis.cur.c;
@@ -388,7 +385,7 @@ function FlowCard({ kpis, dims, flow, funnel }) {
   };
   const flowOption = {
     tooltip: { ...TT, trigger: "item", formatter: (p) =>
-      p.dataType === "edge" ? p.data.source + " naar " + p.data.target + ": " + fmtInt(p.data.value) : p.name },
+      p.dataType === "edge" ? p.data.source + " " + t("to_word") + " " + p.data.target + ": " + fmtInt(p.data.value) : p.name },
     series: [{ type: "sankey", left: 6, right: 84, top: 8, bottom: 8, nodeWidth: 9, nodeGap: 9, draggable: false,
       label: { fontFamily: "IBM Plex Mono", fontSize: 9, color: "#6E6879" },
       lineStyle: { color: "gradient", opacity: 0.28, curveness: 0.5 },
@@ -403,8 +400,8 @@ function FlowCard({ kpis, dims, flow, funnel }) {
 
   // Funnel: uitsluitend stappen die echt uit GA komen; geschatte stappen tonen we niet
   const allSteps = funnel || [
-    { key: "sessie", name: "Sessie", value: s, source: "sessions", note: "Alle sessies in de periode." },
-    { key: "aankoop", name: "Aankoop", value: conv, source: "keyEvents", note: "Nieuwe klanten." },
+    { key: "sessie", name: t("step_session"), value: s, source: "sessions", note: t("note_all_sessions") },
+    { key: "aankoop", name: t("step_purchase"), value: conv, source: "keyEvents", note: t("note_new_clients") },
   ];
   const steps = allSteps.filter((x) => x.source !== "schatting");
   const hidden = allSteps.length - steps.length;
@@ -425,17 +422,17 @@ function FlowCard({ kpis, dims, flow, funnel }) {
     <Card>
       <div className="seghead">
         <Seg value={mode} onChange={setMode} options={[
-          { value: "flow", label: "Flow" }, { value: "funnel", label: "Funnel" },
+          { value: "flow", label: t("flow") }, { value: "funnel", label: t("funnel") },
         ]} />
       </div>
       {mode === "flow" ? (
         <>
-          <div className="h2">Meest gebruikte paginapad naar conversie{flow ? "" : " (schatting)"}</div>
+          <div className="h2">{t("flow_sub")}{flow ? "" : " (" + t("estimate") + ")"}</div>
           <Chart option={flowOption} height={252} />
         </>
       ) : (
         <>
-          <div className="h2">Van sessie naar klant</div>
+          <div className="h2">{t("from_session_to_client")}</div>
           <Chart option={funnelOption} height={132} onClick={(p) => {
             const f = steps.find((x) => x.name === p.name); if (f) setFpick(f);
           }} />
@@ -443,17 +440,17 @@ function FlowCard({ kpis, dims, flow, funnel }) {
             {steps.slice(1).map((st, i) => {
               const prev = steps[i].value || 1;
               const pct = Math.round((st.value / prev) * 1000) / 10;
-              return <div className="fdrop" key={st.key}><span>{steps[i].name} naar {st.name}</span><b>{String(pct).replace(".", ",")}%</b></div>;
+              return <div className="fdrop" key={st.key}><span>{steps[i].name} {t("to_word")} {st.name}</span><b>{String(pct).replace(".", ",")}%</b></div>;
             })}
           </div>
           {fpick
-            ? <div className="fnote"><b>{fpick.name}, {fmtInt(fpick.value)}.</b> {fpick.note} <span className="demobadge" style={{ marginLeft: 6 }}>{fpick.source === "event" ? "GA4-event" : fpick.source === "sessions" || fpick.source === "keyEvents" ? "GA4" : "schatting"}</span></div>
-            : <div className="fnote" style={{ color: "var(--mist)" }}>Tik op een stap voor uitleg en de databron.</div>}
+            ? <div className="fnote"><b>{fpick.name}, {fmtInt(fpick.value)}.</b> {fpick.note} <span className="demobadge" style={{ marginLeft: 6 }}>{fpick.source === "event" ? "GA4-event" : fpick.source === "sessions" || fpick.source === "keyEvents" ? "GA4" : t("estimate")}</span></div>
+            : <div className="fnote" style={{ color: "var(--mist)" }}>{t("funnel_tap")}</div>}
           <div className="fstats">
-            <div className="fstat"><div className="fl">Conversieratio</div><div className="fv disp">{rate.toFixed(1).replace(".", ",")}%</div></div>
-            <div className="fstat"><div className="fl">Gem. waarde p. klant</div><div className="fv disp">&euro;{fmtInt(avgValue)}</div></div>
+            <div className="fstat"><div className="fl">{t("conv_rate")}</div><div className="fv disp">{rate.toFixed(1).replace(".", ",")}%</div></div>
+            <div className="fstat"><div className="fl">{t("avg_value_client")}</div><div className="fv disp">&euro;{fmtInt(avgValue)}</div></div>
           </div>
-          {hidden > 0 && <div className="maphint">{hidden} tussenstap{hidden > 1 ? "pen" : ""} (lead, aanvraag) verschijn{hidden > 1 ? "en" : "t"} zodra de site deze GA4-events stuurt.</div>}
+          {hidden > 0 && <div className="maphint">{t("funnel_hidden")}</div>}
         </>
       )}
     </Card>
@@ -462,9 +459,10 @@ function FlowCard({ kpis, dims, flow, funnel }) {
 
 function MapCard({ countries, cities }) {
   const { theme } = useUI();
+  const t = useT();
   const [mapReady, setMapReady] = useState(null); // null=laden, true=ok, false=fout
   const [view, setView] = useState("land");
-  const [hint, setHint] = useState("Tik op een stad om in te zoomen");
+  const [hint, setHint] = useState(t("map_hint"));
   const chartRef = useRef(null);
 
   const VIEWS = {
@@ -515,15 +513,15 @@ function MapCard({ countries, cities }) {
   function onClick(p) {
     if (view === "land" && p.seriesType === "effectScatter" && chartRef.current) {
       chartRef.current.setOption({ geo: { center: [p.value[0], p.value[1]], zoom: 46 } });
-      setHint("Ingezoomd op " + p.name + ", kies Land om terug te gaan");
+      setHint(t("map_zoomed_pre") + " " + p.name + t("map_zoomed_post"));
     }
   }
 
   return (
     <Card>
       <div className="seghead">
-        <Seg value={view} onChange={(v) => { setView(v); setHint("Tik op een stad om in te zoomen"); }} options={[
-          { value: "land", label: "Land" }, { value: "continent", label: "Continent" }, { value: "wereld", label: "Wereld" },
+        <Seg value={view} onChange={(v) => { setView(v); setHint(t("map_hint")); }} options={[
+          { value: "land", label: t("country") }, { value: "continent", label: t("continent") }, { value: "wereld", label: t("world") },
         ]} />
       </div>
       {mapReady === false ? (
@@ -534,7 +532,7 @@ function MapCard({ countries, cities }) {
         <div className="mapwrap">
           <Chart option={option} height={300} onInit={(c) => { chartRef.current = c; }} onClick={onClick} />
         <div className="maplegend">
-          <div className="mlghead">{view === "land" ? "Top steden" : "Top landen"}</div>
+          <div className="mlghead">{view === "land" ? t("top_cities") : t("top_countries")}</div>
           {(view === "land" ? [...cityData].sort((a, b) => b.value[2] - a.value[2]) : [...countries].sort((a, b) => b.value - a.value))
             .slice(0, 10).map((r, i) => {
               const nm = view === "land" ? r.name : r.name;
