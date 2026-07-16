@@ -5,6 +5,7 @@ import { Card, Seg, fmtInt, fmtDur, fmtPctDelta } from "../components/ui.jsx";
 import { AX, TT, SPLIT, COLORS } from "../echartsSetup.js";
 import { CITIES, PERIOD_LABEL, KEYWORDS } from "../data.js";
 import { useUI } from "../i18n.js";
+import AuroraChart from "../components/AuroraChart.jsx";
 import { getTargets } from "../targets.js";
 
 const DIM_LABELS = { kanalen: "Kanalen", campagnes: "Campagnes", landingspaginas: "Landingspagina's" };
@@ -100,29 +101,8 @@ export default function Result({ data, filter, goTrends }) {
     c: { label: "Conversies", key: "c", target: TARGET, pct: false },
     e: { label: "Betrokkenheid", key: "e", target: getTargets().engTarget || 65, pct: true },
   };
-  const dayOption = useMemo(() => {
-    const m = METRIC[metric];
-    const vals = days.map((d) => d[m.key] ?? 0);
-    const line = new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-      { offset: 0, color: "rgba(230,0,126,.28)" }, { offset: 1, color: "rgba(230,0,126,0)" }]);
-    return {
-      grid: { left: 40, right: 12, top: 12, bottom: 22 },
-      tooltip: { ...TT, trigger: "axis", formatter: (p) => {
-        const i = p[0].dataIndex, r = days[i];
-        return r.date + "<br/>" + m.label + ": " + fmtInt(vals[i]) + (m.pct ? "%" : "") +
-          "<br/>Target: " + fmtInt(m.target) + (m.pct ? "%" : "");
-      }},
-      xAxis: { ...AX, type: "category", data: days.map((d) => d.date), boundaryGap: false,
-        axisLabel: { ...AX.axisLabel, interval: Math.max(1, Math.floor(days.length / 7)) } },
-      yAxis: { ...AX, type: "value", splitLine: SPLIT, max: m.pct ? 100 : null },
-      series: [
-        { name: m.label, type: "line", data: vals, smooth: true, showSymbol: false,
-          lineStyle: { width: 3, color: COLORS.magenta }, itemStyle: { color: COLORS.magenta }, areaStyle: { color: line } },
-        { name: "Target", type: "line", data: days.map(() => m.target),
-          showSymbol: false, lineStyle: { width: 1.6, type: "dashed", color: COLORS.deepviolet }, itemStyle: { color: COLORS.deepviolet } },
-      ],
-    };
-  }, [days, TARGET, metric, theme]);
+  const dayMetric = METRIC[metric];
+  const dayVals = days.map((d) => d[dayMetric.key] ?? 0);
 
   return (
     <div className="view">
@@ -141,7 +121,8 @@ export default function Result({ data, filter, goTrends }) {
       <Card>
         <div className="h1 disp">{METRIC[metric].label} per dag</div>
         <div className="h2"><b>{fmtPctDelta(kpis.cur.s, kpis.prev.s) >= 0 ? "+" : ""}{fmtPctDelta(kpis.cur.s, kpis.prev.s)}%</b> sessies tegenover {cmp}</div>
-        <Chart option={dayOption} height={216} />
+        <AuroraChart days={days} values={dayVals} target={dayMetric.target}
+          unit={dayMetric.pct ? "%" : ""} label={dayMetric.label} theme={theme} height={216} />
       </Card>
 
       <KpiStrip kpis={kpis} metric={metric} setMetric={setMetric} />
