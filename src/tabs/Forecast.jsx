@@ -5,17 +5,15 @@ import { Card, Seg, fmtInt } from "../components/ui.jsx";
 import { AX, TT, SPLIT, COLORS } from "../echartsSetup.js";
 import { getTargets, setTargets } from "../targets.js";
 import { PERIOD_LABEL } from "../data.js";
-import { useUI } from "../i18n.js";
+import { useUI, useT } from "../i18n.js";
 
-const KPIS = [
-  { id: "users", label: "Gebruikers" },
-  { id: "conv", label: "Conversies" },
-  { id: "value", label: "Conv.waarde" },
-];
+const KPI_KEYS = { users: "users", conv: "conversions", value: "conv_value" };
 
 export default function Forecast({ data, period = "maand" }) {
-  const plabel = PERIOD_LABEL[period] || "deze periode";
   const { theme } = useUI();
+  const Tr = useT();
+  const plabel = Tr("p_" + ({ jaar: "year", kwartaal: "quarter", maand: "month", week: "week" }[period] || "month"));
+  const KPIS = [{ id: "users", label: Tr("users") }, { id: "conv", label: Tr("conversions") }, { id: "value", label: Tr("conv_value") }];
   const { kpis, days, periods } = data;
   const [kpi, setKpi] = useState("conv");
   const [t, setT] = useState(getTargets());
@@ -105,28 +103,28 @@ export default function Forecast({ data, period = "maand" }) {
   return (
     <div className="view">
       <Card>
-        <div className="h1 disp">Targets</div>
-        <div className="h2">Vul de doelen in; ze werken door in de prognose en de pacing</div>
+        <div className="h1 disp">{Tr("targets")}</div>
+        <div className="h2">{Tr("targets_sub")}</div>
         <div className="tgrid">
           {[
-            { k: "tVisitors", l: "Bezoekers", real: kpis.cur.u, val: t.tVisitors },
-            { k: "tConv", l: "Conversies", real: kpis.cur.c, val: t.tConv },
-            { k: "tReach", l: "Reach", real: days.reduce((a, b) => a + (b.reach || 0), 0), val: t.tReach },
-            { k: "tSpend", l: "Ad spend, euro", real: days.reduce((a, b) => a + (b.spend || 0), 0), val: t.tSpend },
+            { k: "tVisitors", l: Tr("users"), real: kpis.cur.u, val: t.tVisitors },
+            { k: "tConv", l: Tr("conversions"), real: kpis.cur.c, val: t.tConv },
+            { k: "tReach", l: Tr("reach"), real: days.reduce((a, b) => a + (b.reach || 0), 0), val: t.tReach },
+            { k: "tSpend", l: Tr("ad_spend"), real: days.reduce((a, b) => a + (b.spend || 0), 0), val: t.tSpend },
           ].map((r) => {
             const pct = r.val ? Math.round((r.real / r.val) * 100) : 0;
             return (
               <div className="tgcard" key={r.k}>
                 <div className="tgl">{r.l}</div>
                 <div className="tgvals">
-                  <div className="tgreal"><span className="mono">{fmtInt(r.real)}</span><em>realisatie</em></div>
+                  <div className="tgreal"><span className="mono">{fmtInt(r.real)}</span><em>{Tr("realisation")}</em></div>
                   <div className="tgin">
                     <input className="tin" type="number" value={r.val} onChange={(e) => updT(r.k, e.target.value)} />
-                    <em>target</em>
+                    <em>{Tr("target").toLowerCase()}</em>
                   </div>
                 </div>
                 <div className="minibar"><i className={pct >= 100 ? "ok" : ""} style={{ width: Math.min(100, pct) + "%" }} /></div>
-                <div className="tgpct mono">{pct}% van doel</div>
+                <div className="tgpct mono">{pct}% {Tr("of_target")}</div>
               </div>
             );
           })}
@@ -136,8 +134,8 @@ export default function Forecast({ data, period = "maand" }) {
       <Card>
         <div className="hrow">
           <div>
-            <div className="h1 disp">KPI prognose en target</div>
-            <div className="h2">Resultaat per dag met de uitgetekende targetlijn</div>
+            <div className="h1 disp">{Tr("kpi_forecast")}</div>
+            <div className="h2">{Tr("targetline_sub")}</div>
           </div>
           <Seg value={kpi} onChange={setKpi} options={KPIS.map((k) => ({ value: k.id, label: k.label }))} />
         </div>
@@ -145,13 +143,13 @@ export default function Forecast({ data, period = "maand" }) {
         <div className={"achieve " + (achieve.gap >= 0 ? "ok" : "no")}>
           <div className="acbig disp">{achieve.pct}%</div>
           <div className="actxt">
-            Bij dit tempo kom je uit op <b>{fmtInt(achieve.projTotal)}</b> {KPIS.find((k) => k.id === kpi)?.label.toLowerCase()}, tegen een doel van {fmtInt(periodTarget)}.
+            {Tr("achieve_pre")} <b>{fmtInt(achieve.projTotal)}</b> {KPIS.find((k) => k.id === kpi)?.label.toLowerCase()}, {Tr("achieve_target")} {fmtInt(periodTarget)}.
             {achieve.gap >= 0
-              ? <> Je <b>overtreft</b> je doel met {fmtInt(achieve.gap)}.</>
-              : <> Je komt <b>{fmtInt(Math.abs(achieve.gap))}</b> tekort.</>}
+              ? <> {Tr("exceed")} {fmtInt(achieve.gap)}.</>
+              : <> {Tr("short")} <b>{fmtInt(Math.abs(achieve.gap))}</b> {Tr("short_tail")}</>}
           </div>
         </div>
-        <div className="maphint">De band toont de onzekerheid: de projectie verbreedt naar het einde van de periode. Stel je doel in bij de targetkaarten hierboven.</div>
+        <div className="maphint">{Tr("uncertainty_note")}</div>
       </Card>
 
     </div>
