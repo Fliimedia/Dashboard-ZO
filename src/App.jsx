@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { UIContext } from "./i18n.js";
+import { UIContext, useT, tr } from "./i18n.js";
 import Result from "./tabs/Result.jsx";
 import Trends from "./tabs/Trends.jsx";
 import Insights from "./tabs/Insights.jsx";
@@ -131,25 +131,29 @@ function SearchBox({ placeholder, onGo }) {
 }
 
 function BrandBar() {
-  const wm = wordmark(BRAND.name);
+  const t = useT();
+  const name = t("brand_name");
+  const wm = wordmark(name);
   return (
     <div className="card brandbar">
       <div className={"blogo" + (BRAND.logo ? "" : " wmark")}>
-        {BRAND.logo ? <img src={BRAND.logo} alt={BRAND.name} /> : <span className="wm">{wm}</span>}
+        {BRAND.logo ? <img src={BRAND.logo} alt={name} /> : <span className="wm">{wm}</span>}
       </div>
       <div className="bmeta">
-        <div className="bname disp">{BRAND.name}</div>
-        <div className="btag">{BRAND.tagline}</div>
-        <div className="bsite">{BRAND.site}</div>
+        <div className="bname disp">{name}</div>
+        <div className="btag">{t("brand_tagline")}</div>
+        <div className="bsite">{t("brand_site")}</div>
       </div>
       <div className="bspace" />
-      <div className="bdesc">{BRAND.description}</div>
+      <div className="bdesc">{t("brand_desc")}</div>
     </div>
   );
 }
 
 function AcctWordmark({ onClick }) {
-  return <div className="acctwm" onClick={onClick}>{BRAND.logo ? <img src={BRAND.logo} alt={BRAND.name} /> : wordmark(BRAND.name)}</div>;
+  const t = useT();
+  const name = t("brand_name");
+  return <div className="acctwm" onClick={onClick}>{BRAND.logo ? <img src={BRAND.logo} alt={name} /> : wordmark(name)}</div>;
 }
 
 export default function App() {
@@ -176,7 +180,7 @@ export default function App() {
 
   const d = data || demoData(period, compare);
   const filter = { period, setPeriod, compare, setCompare };
-  const title = tab === "settings" ? "Instellingen" : tab === "profile" ? "Profiel" : (TABS.find((t) => t.id === tab)?.label || "");
+  const title = tab === "settings" ? tr(lang, "settings") : tab === "profile" ? tr(lang, "profile") : tr(lang, "tab_" + tab);
 
   return (
     <UIContext.Provider value={{ lang, setLang, theme, setTheme }}>
@@ -184,19 +188,19 @@ export default function App() {
         <div className="rail">
           <div className="railbrand"><div className="oslogo disp">OS</div></div>
           {TABS.map((t) => (
-            <div key={t.id} className={"ritm" + (tab === t.id ? " on" : "")} title={t.label} onClick={() => setTab(t.id)}>
+            <div key={t.id} className={"ritm" + (tab === t.id ? " on" : "")} title={tr(lang, "tab_" + t.id)} onClick={() => setTab(t.id)}>
               {IC[t.id]}
             </div>
           ))}
           <div className="railspace" />
-          <div className={"ritm" + (tab === "settings" ? " on" : "")} title="Instellingen" onClick={() => setTab("settings")}>{IC.settings}</div>
-          <div className={"ritm" + (tab === "profile" ? " on" : "")} title="Profiel" onClick={() => setTab("profile")}>{IC.profile}</div>
+          <div className={"ritm" + (tab === "settings" ? " on" : "")} title={tr(lang, "settings")} onClick={() => setTab("settings")}>{IC.settings}</div>
+          <div className={"ritm" + (tab === "profile" ? " on" : "")} title={tr(lang, "profile")} onClick={() => setTab("profile")}>{IC.profile}</div>
         </div>
 
         <div className="mainc">
           <div className="mobilehead">
             <div className="applogo disp">Performance OS</div>
-            <SearchBox placeholder="Zoeken" onGo={setTab} />
+            <SearchBox placeholder={tr(lang, "search")} onGo={setTab} />
             <AcctWordmark onClick={() => setTab("profile")} />
           </div>
           <div className="topbar">
@@ -219,7 +223,7 @@ export default function App() {
           {tab === "profile" && <Profile />}
           <div className="fliifoot">
             <div className="footicons">
-              <button className="footbtn" onClick={() => setTheme(theme === "dark" ? "light" : "dark")} title={theme === "dark" ? "Lichte modus" : "Donkere modus"} aria-label="Thema wisselen">
+              <button className="footbtn" onClick={() => setTheme(theme === "dark" ? "light" : "dark")} title={theme === "dark" ? tr(lang, "light_mode") : tr(lang, "dark_mode")} aria-label="theme">
                 {theme === "dark"
                   ? <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4.5" /><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M19.1 4.9l-1.4 1.4M6.3 17.7l-1.4 1.4" /></svg>
                   : <svg viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1111.2 3a7 7 0 009.8 9.8z" /></svg>}
@@ -235,7 +239,7 @@ export default function App() {
       <div className="bottomnav">
         {TABS.map((t) => (
           <div key={t.id} className={"bni" + (tab === t.id ? " on" : "")} onClick={() => setTab(t.id)}>
-            {IC[t.id]}<span>{t.label}</span>
+            {IC[t.id]}<span>{tr(lang, "tab_" + t.id)}</span>
           </div>
         ))}
       </div>
