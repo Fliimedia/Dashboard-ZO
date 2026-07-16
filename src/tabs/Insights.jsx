@@ -1,10 +1,12 @@
 import { useState } from "react";
 import { Card, fmtInt, fmtPctDelta } from "../components/ui.jsx";
 import { PERIOD_LABEL, KEYWORDS, BRAND } from "../data.js";
+import { useUI, useT } from "../i18n.js";
 
 const CTX_KEY = "pos_report_context";
 
 function ReportView({ r }) {
+  const t = useT();
   if (r && r.text) return <p className="rp-prose">{r.text}</p>;
   if (!r) return null;
   return (
@@ -35,12 +37,12 @@ function ReportView({ r }) {
         </div>
       ))}
       <div className="rp-block">
-        <div className="rp-h">Aanbevelingen</div>
+        <div className="rp-h">{t("recommendations")}</div>
         <ol className="rp-recs">{r.recs.map((x, i) => <li key={i}>{x}</li>)}</ol>
       </div>
       {r.context && (
         <div className="rp-block">
-          <div className="rp-h">Context van het team</div>
+          <div className="rp-h">{t("team_context")}</div>
           <p className="rp-prose">{r.context}</p>
         </div>
       )}
@@ -49,8 +51,11 @@ function ReportView({ r }) {
 }
 
 export default function Insights({ data, period = "maand", compare = "prev" }) {
-  const plabel = PERIOD_LABEL[period] || "deze periode";
-  const cmp = compare === "yoy" ? "dezelfde periode vorig jaar" : "de periode ervoor";
+  const { lang } = useUI();
+  const t = useT();
+  const L = (nl, en) => (lang === "en" ? en : nl);
+  const plabel = t("p_" + ({ jaar: "year", kwartaal: "quarter", maand: "month", week: "week" }[period] || "month"));
+  const cmp = compare === "yoy" ? L("dezelfde periode vorig jaar", "the same period last year") : L("de periode ervoor", "the previous period");
   const { kpis, dims } = data;
   const delta = fmtPctDelta(kpis.cur.s, kpis.prev.s);
   const cdelta = fmtPctDelta(kpis.cur.c, kpis.prev.c);
@@ -98,68 +103,68 @@ export default function Insights({ data, period = "maand", compare = "prev" }) {
 
   cand.push({
     ic: IC.trend, imp: Math.abs(delta) > 15 ? "hoog" : "middel", m: (delta >= 0 ? "+" : "") + delta + "%",
-    t: "Verkeer " + (delta >= 0 ? "groeit" : "krimpt") + " tegenover " + cmp,
-    d: "Het verkeer " + (delta >= 0 ? "steeg" : "daalde") + " in de " + plabel + " met " + Math.abs(delta) + "% naar " + fmtInt(kpis.cur.s) + " sessies. Conversies " + (cdelta >= 0 ? "stegen" : "daalden") + " " + Math.abs(cdelta) + "%.",
+    t: L("Verkeer " + (delta >= 0 ? "groeit" : "krimpt") + " tegenover " + cmp, "Traffic " + (delta >= 0 ? "grows" : "shrinks") + " versus " + cmp),
+    d: L("Het verkeer " + (delta >= 0 ? "steeg" : "daalde") + " in de " + plabel + " met " + Math.abs(delta) + "% naar " + fmtInt(kpis.cur.s) + " sessies. Conversies " + (cdelta >= 0 ? "stegen" : "daalden") + " " + Math.abs(cdelta) + "%.", "Traffic " + (delta >= 0 ? "rose" : "fell") + " in the " + plabel + " by " + Math.abs(delta) + "% to " + fmtInt(kpis.cur.s) + " sessions. Conversions " + (cdelta >= 0 ? "rose" : "fell") + " " + Math.abs(cdelta) + "%."),
     score: Math.abs(delta) });
 
   if (bigCh && effCh && bigCh.n !== effCh.n) {
     cand.push({
       ic: IC.channel, imp: "hoog", m: convRate(effCh).toFixed(1).replace(".", ",") + "%",
-      t: effCh.n + " converteert het scherpst, " + bigCh.n + " brengt het meeste volume",
-      d: bigCh.n + " levert de meeste sessies (" + fmtInt(bigCh.s) + ") maar converteert op " + convRate(bigCh).toFixed(1).replace(".", ",") + "%, terwijl " + effCh.n + " op " + convRate(effCh).toFixed(1).replace(".", ",") + "% zit. Meer budget of aandacht naar " + effCh.n + " haalt meer uit hetzelfde verkeer.",
+      t: L(effCh.n + " converteert het scherpst, " + bigCh.n + " brengt het meeste volume", effCh.n + " converts sharpest, " + bigCh.n + " brings the most volume"),
+      d: L(bigCh.n + " levert de meeste sessies (" + fmtInt(bigCh.s) + ") maar converteert op " + convRate(bigCh).toFixed(1).replace(".", ",") + "%, terwijl " + effCh.n + " op " + convRate(effCh).toFixed(1).replace(".", ",") + "% zit. Meer budget of aandacht naar " + effCh.n + " haalt meer uit hetzelfde verkeer.", bigCh.n + " brings the most sessions (" + fmtInt(bigCh.s) + ") but converts at " + convRate(bigCh).toFixed(1).replace(".", ",") + "%, while " + effCh.n + " sits at " + convRate(effCh).toFixed(1).replace(".", ",") + "%. Shifting budget or focus to " + effCh.n + " gets more from the same traffic."),
       score: (convRate(effCh) - convRate(bigCh)) * 6 });
   }
 
   if (topSearch) {
     cand.push({
       ic: IC.search, imp: "hoog", m: fmtInt(topSearch.c),
-      t: "Search-campagne " + topSearch.n + " is je sterkste betaalde bron",
-      d: "Deze search-campagne leverde " + fmtInt(topSearch.c) + " conversies tegen " + convRate(topSearch).toFixed(1).replace(".", ",") + "% conversie. " + (riser && searchCh ? "De zoekvraag naar \"" + riser.k + "\" groeit " + (riser.c >= 0 ? "+" : "") + riser.c + "%, dus hier is ruimte om op te schalen." : "Overweeg het budget te verhogen zolang de conversie op peil blijft."),
+      t: L("Search-campagne " + topSearch.n + " is je sterkste betaalde bron", "Search campaign " + topSearch.n + " is your strongest paid source"),
+      d: L("Deze search-campagne leverde " + fmtInt(topSearch.c) + " conversies tegen " + convRate(topSearch).toFixed(1).replace(".", ",") + "% conversie. " + (riser && searchCh ? "De zoekvraag naar \"" + riser.k + "\" groeit " + (riser.c >= 0 ? "+" : "") + riser.c + "%, dus hier is ruimte om op te schalen." : "Overweeg het budget te verhogen zolang de conversie op peil blijft."), "This search campaign delivered " + fmtInt(topSearch.c) + " conversions at " + convRate(topSearch).toFixed(1).replace(".", ",") + "% conversion. " + (riser && searchCh ? "Search demand for \"" + riser.k + "\" is growing " + (riser.c >= 0 ? "+" : "") + riser.c + "%, so there is room to scale." : "Consider raising the budget as long as conversion holds.")),
       score: topSearch.c });
   }
 
   if (topSocial) {
     cand.push({
       ic: IC.social, imp: "middel", m: fmtInt(topSocial.c),
-      t: "Social-campagne " + topSocial.n + " draagt bij aan de funnel",
-      d: "Deze social-campagne bracht " + fmtInt(topSocial.s) + " sessies en " + fmtInt(topSocial.c) + " conversies. Social presteert doorgaans hoger in de oriëntatiefase; koppel hem aan retargeting om de conversie te verzilveren.",
+      t: L("Social-campagne " + topSocial.n + " draagt bij aan de funnel", "Social campaign " + topSocial.n + " contributes to the funnel"),
+      d: L("Deze social-campagne bracht " + fmtInt(topSocial.s) + " sessies en " + fmtInt(topSocial.c) + " conversies. Social presteert doorgaans hoger in de oriëntatiefase; koppel hem aan retargeting om de conversie te verzilveren.", "This social campaign brought " + fmtInt(topSocial.s) + " sessions and " + fmtInt(topSocial.c) + " conversions. Social usually performs higher in the orientation phase; pair it with retargeting to cash in the conversion."),
       score: topSocial.c * 0.7 });
   }
 
   if (searchCh && riser) {
     cand.push({
       ic: IC.search, imp: riser.c > 25 ? "hoog" : "middel", m: (riser.c >= 0 ? "+" : "") + riser.c + "%",
-      t: "Belangrijkste zoekwoord voor " + searchCh.n + ": " + riser.k,
-      d: "De zoekvraag naar \"" + riser.k + "\" " + (riser.c >= 0 ? "stijgt" : "daalt") + " met " + Math.abs(riser.c) + "%. " + searchCh.n + " is je grootste organische kanaal; een landingspagina of blog die exact op deze term inspeelt, vangt die groeiende vraag.",
+      t: L("Belangrijkste zoekwoord voor " + searchCh.n + ": " + riser.k, "Key keyword for " + searchCh.n + ": " + riser.k),
+      d: L("De zoekvraag naar \"" + riser.k + "\" " + (riser.c >= 0 ? "stijgt" : "daalt") + " met " + Math.abs(riser.c) + "%. " + searchCh.n + " is je grootste organische kanaal; een landingspagina of blog die exact op deze term inspeelt, vangt die groeiende vraag.", "Search demand for \"" + riser.k + "\" " + (riser.c >= 0 ? "is rising" : "is falling") + " by " + Math.abs(riser.c) + "%. " + searchCh.n + " is your largest organic channel; a landing page or blog that targets this exact term captures that growing demand."),
       score: Math.abs(riser.c) * 1.5 });
   }
 
   if (topLp) {
     cand.push({
       ic: IC.page, imp: "middel", m: fmtInt(topLp.c),
-      t: "Belangrijkste landingspagina: " + topLp.n,
-      d: topLp.n + " vangt de meeste conversies (" + fmtInt(topLp.c) + ") op " + convRate(topLp).toFixed(1).replace(".", ",") + "%. Zet hier je sterkste call to action en gebruik de pagina als sjabloon voor de andere.",
+      t: L("Belangrijkste landingspagina: " + topLp.n, "Key landing page: " + topLp.n),
+      d: L(topLp.n + " vangt de meeste conversies (" + fmtInt(topLp.c) + ") op " + convRate(topLp).toFixed(1).replace(".", ",") + "%. Zet hier je sterkste call to action en gebruik de pagina als sjabloon voor de andere.", topLp.n + " captures the most conversions (" + fmtInt(topLp.c) + ") at " + convRate(topLp).toFixed(1).replace(".", ",") + "%. Put your strongest call to action here and use the page as a template for the others."),
       score: topLp.c * 0.5 });
   }
 
   if (deadLp && convRate(deadLp) < 2) {
     cand.push({
       ic: IC.page, imp: "middel", m: convRate(deadLp).toFixed(1).replace(".", ",") + "%",
-      t: deadLp.n + " trekt verkeer maar converteert nauwelijks",
-      d: deadLp.n + " krijgt " + fmtInt(deadLp.s) + " sessies maar zet ze amper om (" + convRate(deadLp).toFixed(1).replace(".", ",") + "%). Een duidelijk vervolgpad of call to action richting " + (topLp ? topLp.n : "de aanvraagpagina") + " kan hier conversies vrijmaken.",
+      t: L(deadLp.n + " trekt verkeer maar converteert nauwelijks", deadLp.n + " draws traffic but barely converts"),
+      d: L(deadLp.n + " krijgt " + fmtInt(deadLp.s) + " sessies maar zet ze amper om (" + convRate(deadLp).toFixed(1).replace(".", ",") + "%). Een duidelijk vervolgpad of call to action richting " + (topLp ? topLp.n : "de aanvraagpagina") + " kan hier conversies vrijmaken.", deadLp.n + " gets " + fmtInt(deadLp.s) + " sessions but barely converts them (" + convRate(deadLp).toFixed(1).replace(".", ",") + "%). A clear next step or call to action toward " + (topLp ? topLp.n : "the request page") + " could unlock conversions here."),
       score: deadLp.s / 200 });
   }
 
   cand.push({
     ic: IC.pulse, imp: "laag", m: (weakCh ? weakCh.e : 0) + "%",
-    t: (weakCh ? weakCh.n : "Zwakste kanaal") + " blijft achter in betrokkenheid",
-    d: "De aansluiting tussen deze instroom en de landingspagina is het verbeterpunt; " + (topLp ? topLp.n : "de beste pagina") + " laat zien wat wel werkt.",
+    t: L((weakCh ? weakCh.n : "Zwakste kanaal") + " blijft achter in betrokkenheid", (weakCh ? weakCh.n : "Weakest channel") + " lags in engagement"),
+    d: L("De aansluiting tussen deze instroom en de landingspagina is het verbeterpunt; " + (topLp ? topLp.n : "de beste pagina") + " laat zien wat wel werkt.", "The match between this inflow and the landing page is the improvement point; " + (topLp ? topLp.n : "the best page") + " shows what does work."),
     score: 4 });
 
   cand.push({
     ic: IC.funnel, imp: rate < 3 ? "hoog" : "middel", m: String(rate).replace(".", ",") + "%",
-    t: "Conversieratio van sessie naar aanmelding",
-    d: "Van elke duizend sessies leiden er " + Math.round(rate * 10) + " tot een aanmelding. " + (rate < 3 ? "Onder de 3% is er ruimte in het aanvraagpad." : "Dat is een gezond niveau; bewaken bij schalen."),
+    t: L("Conversieratio van sessie naar aanmelding", "Conversion rate from session to signup"),
+    d: L("Van elke duizend sessies leiden er " + Math.round(rate * 10) + " tot een aanmelding. " + (rate < 3 ? "Onder de 3% is er ruimte in het aanvraagpad." : "Dat is een gezond niveau; bewaken bij schalen."), "Of every thousand sessions, " + Math.round(rate * 10) + " lead to a signup. " + (rate < 3 ? "Below 3% there is room in the request path." : "That is a healthy level; monitor when scaling.")),
     score: rate < 3 ? 20 : 5 });
 
   // Trends: belangrijkste zoekwoord plus grootste stijger en daler in zoekvraag, met context
@@ -169,18 +174,18 @@ export default function Insights({ data, period = "maand", compare = "prev" }) {
     const downKw = [...KEYWORDS].sort((a, b) => a.c - b.c)[0];
     if (topKw) cand.push({
       ic: IC.search, imp: "middel", m: fmtInt(topKw.v),
-      t: "Grootste zoekvraag: " + topKw.k,
-      d: "Met " + fmtInt(topKw.v) + " zoekopdrachten per maand is dit de belangrijkste term in de categorie. Zorg dat een sterke landingspagina exact op deze intentie inspeelt.",
+      t: L("Grootste zoekvraag: " + topKw.k, "Largest search demand: " + topKw.k),
+      d: L("Met " + fmtInt(topKw.v) + " zoekopdrachten per maand is dit de belangrijkste term in de categorie. Zorg dat een sterke landingspagina exact op deze intentie inspeelt.", "With " + fmtInt(topKw.v) + " searches per month this is the key term in the category. Make sure a strong landing page targets this exact intent."),
       score: 14 });
     if (upKw && upKw.c > 0) cand.push({
       ic: IC.trend, imp: upKw.c > 25 ? "hoog" : "middel", m: "+" + upKw.c + "%",
-      t: "Sterkste stijger in zoekvraag: " + upKw.k,
-      d: "De vraag naar \"" + upKw.k + "\" groeit " + upKw.c + "%, waarschijnlijk seizoensgebonden of door een nieuwstrend. Speel hierop in met content voordat concurrenten de term claimen.",
+      t: L("Sterkste stijger in zoekvraag: " + upKw.k, "Strongest riser in search demand: " + upKw.k),
+      d: L("De vraag naar \"" + upKw.k + "\" groeit " + upKw.c + "%, waarschijnlijk seizoensgebonden of door een nieuwstrend. Speel hierop in met content voordat concurrenten de term claimen.", "Demand for \"" + upKw.k + "\" is growing " + upKw.c + "%, likely seasonal or driven by a news trend. Act on it with content before competitors claim the term."),
       score: 16 + upKw.c / 5 });
     if (downKw && downKw.c < 0) cand.push({
       ic: IC.trend, imp: "laag", m: downKw.c + "%",
-      t: "Sterkste daler in zoekvraag: " + downKw.k,
-      d: "De vraag naar \"" + downKw.k + "\" koelt af met " + Math.abs(downKw.c) + "%, mogelijk na een piek of door verschuivend gedrag. Verlaag hier de nadruk en verschuif budget naar stijgende termen.",
+      t: L("Sterkste daler in zoekvraag: " + downKw.k, "Strongest faller in search demand: " + downKw.k),
+      d: L("De vraag naar \"" + downKw.k + "\" koelt af met " + Math.abs(downKw.c) + "%, mogelijk na een piek of door verschuivend gedrag. Verlaag hier de nadruk en verschuif budget naar stijgende termen.", "Demand for \"" + downKw.k + "\" is cooling off by " + Math.abs(downKw.c) + "%, possibly after a peak or shifting behaviour. Lower the emphasis here and shift budget to rising terms."),
       score: 8 });
   }
 
@@ -188,7 +193,7 @@ export default function Insights({ data, period = "maand", compare = "prev" }) {
   const insights = cand.sort((a, b) => b.score - a.score).slice(0, 8);
 
     function copyReport() {
-    const txt = "Business insights, " + plabel + "\n\n" + insights.map((i) => "[" + i.imp + "] " + i.t + "\n" + i.d).join("\n\n");
+    const txt = t("business_insights") + ", " + plabel + "\n\n" + insights.map((i) => "[" + i.imp + "] " + i.t + "\n" + i.d).join("\n\n");
     try { navigator.clipboard.writeText(txt); } catch {}
   }
   const [busy, setBusy] = useState(false);
@@ -218,29 +223,33 @@ export default function Insights({ data, period = "maand", compare = "prev" }) {
     const topPages = [...dims.landingspaginas].sort((a, b) => b.c - a.c).slice(0, 5);
     const topCa2 = topCamps[0], bestLp = topPages[0], topCh = topChannels[0];
     const now = new Date();
-    const dstr = now.toLocaleDateString("nl-NL", { day: "numeric", month: "long", year: "numeric" });
+    const dstr = now.toLocaleDateString(lang === "en" ? "en-GB" : "nl-NL", { day: "numeric", month: "long", year: "numeric" });
     return {
-      title: "Performance rapport",
-      sub: BRAND.name + " / " + plabel + " / opgesteld " + dstr,
+      title: t("report_title"),
+      sub: t("brand_name") + " / " + plabel + " / " + t("compiled") + " " + dstr,
       kpis: [
-        { l: "Sessies", v: fmtInt(kpis.cur.s), d: delta },
-        { l: "Gebruikers", v: fmtInt(kpis.cur.u), d: fmtPctDelta(kpis.cur.u, kpis.prev.u) },
-        { l: "Conversies", v: fmtInt(kpis.cur.c), d: cdelta },
-        { l: "Conversieratio", v: String(rate).replace(".", ",") + "%", d: null },
+        { l: t("sessions"), v: fmtInt(kpis.cur.s), d: delta },
+        { l: t("users"), v: fmtInt(kpis.cur.u), d: fmtPctDelta(kpis.cur.u, kpis.prev.u) },
+        { l: t("conversions"), v: fmtInt(kpis.cur.c), d: cdelta },
+        { l: t("conv_rate"), v: String(rate).replace(".", ",") + "%", d: null },
       ],
-      intro: "In de " + plabel + " trok de site " + fmtInt(kpis.cur.s) + " sessies van " + fmtInt(kpis.cur.u) +
+      intro: L("In de " + plabel + " trok de site " + fmtInt(kpis.cur.s) + " sessies van " + fmtInt(kpis.cur.u) +
         " gebruikers, met " + fmtInt(kpis.cur.c) + " conversies. Het verkeer " + (delta >= 0 ? "steeg" : "daalde") +
         " " + Math.abs(delta) + "% tegenover " + cmp + " en conversies " + (cdelta >= 0 ? "stegen" : "daalden") +
         " " + Math.abs(cdelta) + "%.",
+        "In the " + plabel + " the site drew " + fmtInt(kpis.cur.s) + " sessions from " + fmtInt(kpis.cur.u) +
+        " users, with " + fmtInt(kpis.cur.c) + " conversions. Traffic " + (delta >= 0 ? "rose" : "fell") +
+        " " + Math.abs(delta) + "% versus " + cmp + " and conversions " + (cdelta >= 0 ? "rose" : "fell") +
+        " " + Math.abs(cdelta) + "%."),
       tables: [
-        { title: "Kanalen", cols: ["Kanaal", "Sessies", "Conversies"], rows: topChannels.map((r) => [r.n, fmtInt(r.s), fmtInt(r.c)]) },
-        { title: "Campagnes", cols: ["Campagne", "Conversies", "Waarde"], rows: topCamps.map((r) => [r.n, fmtInt(r.c), "\u20ac" + fmtInt(r.w)]) },
-        { title: "Landingspagina's", cols: ["Pagina", "Sessies", "Conversies"], rows: topPages.map((r) => [r.n, fmtInt(r.s), fmtInt(r.c)]) },
+        { title: t("channels"), cols: [L("Kanaal","Channel"), t("sessions"), t("conversions")], rows: topChannels.map((r) => [r.n, fmtInt(r.s), fmtInt(r.c)]) },
+        { title: t("campaigns"), cols: [L("Campagne","Campaign"), t("conversions"), t("value")], rows: topCamps.map((r) => [r.n, fmtInt(r.c), "\u20ac" + fmtInt(r.w)]) },
+        { title: t("landingpages"), cols: [L("Pagina","Page"), t("sessions"), t("conversions")], rows: topPages.map((r) => [r.n, fmtInt(r.s), fmtInt(r.c)]) },
       ],
       recs: [
-        "Schaal " + (topCa2 ? topCa2.n : "de best presterende campagne") + " op; dit is de snelste route naar groei binnen het budget.",
-        "Versterk de call to action op " + (bestLp ? bestLp.n : "de best converterende pagina") + " en test varianten van de kop.",
-        "Verbeter de aansluiting tussen " + (weakCh ? weakCh.n : "het zwakste kanaal") + " en de landingspagina om betrokkenheid te verhogen.",
+        L("Schaal " + (topCa2 ? topCa2.n : "de best presterende campagne") + " op; dit is de snelste route naar groei binnen het budget.", "Scale up " + (topCa2 ? topCa2.n : "the best performing campaign") + "; this is the fastest route to growth within budget."),
+        L("Versterk de call to action op " + (bestLp ? bestLp.n : "de best converterende pagina") + " en test varianten van de kop.", "Strengthen the call to action on " + (bestLp ? bestLp.n : "the best converting page") + " and test headline variants."),
+        L("Verbeter de aansluiting tussen " + (weakCh ? weakCh.n : "het zwakste kanaal") + " en de landingspagina om betrokkenheid te verhogen.", "Improve the match between " + (weakCh ? weakCh.n : "the weakest channel") + " and the landing page to raise engagement."),
       ],
       context: ctx && ctx.trim() ? ctx.trim() : null,
     };
@@ -249,12 +258,12 @@ export default function Insights({ data, period = "maand", compare = "prev" }) {
   // Platte tekst voor de kopieerknop
   function reportToText(r) {
     if (!r || typeof r === "string") return r || "";
-    const L = [r.title, r.sub, "", r.intro, ""];
-    L.push("Kerncijfers: " + r.kpis.map((k) => k.l + " " + k.v + (k.d != null ? " (" + (k.d >= 0 ? "+" : "") + k.d + "%)" : "")).join(", "), "");
-    r.tables.forEach((t) => { L.push(t.title); t.rows.forEach((row) => L.push("  " + row.join("  |  "))); L.push(""); });
-    L.push("Aanbevelingen:"); r.recs.forEach((x, i) => L.push((i + 1) + ". " + x));
-    if (r.context) { L.push("", "Context van het team: " + r.context); }
-    return L.join("\n");
+    const L2 = [r.title, r.sub, "", r.intro, ""];
+    L2.push(t("key_figures") + ": " + r.kpis.map((k) => k.l + " " + k.v + (k.d != null ? " (" + (k.d >= 0 ? "+" : "") + k.d + "%)" : "")).join(", "), "");
+    r.tables.forEach((tb) => { L2.push(tb.title); tb.rows.forEach((row) => L2.push("  " + row.join("  |  "))); L2.push(""); });
+    L2.push(t("recommendations") + ":"); r.recs.forEach((x, i) => L2.push((i + 1) + ". " + x));
+    if (r.context) { L2.push("", t("team_context") + ": " + r.context); }
+    return L2.join("\n");
   }
 
   async function generate() {
@@ -283,22 +292,22 @@ export default function Insights({ data, period = "maand", compare = "prev" }) {
       <Card>
         <div className="hrow">
           <div>
-            <div className="h1 disp">Genereer rapport</div>
-            <div className="h2">Kant en klaar rapport uit de cijfers van de {plabel}</div>
+            <div className="h1 disp">{t("generate_report")}</div>
+            <div className="h2">{L("Kant en klaar rapport uit de cijfers van de", "Ready-made report from the figures of the")} {plabel}</div>
           </div>
-          <button className="btn" style={{ marginBottom: 14 }} onClick={generate} disabled={busy}>{busy ? "Bezig..." : "Genereer rapport"}</button>
+          <button className="btn" style={{ marginBottom: 14 }} onClick={generate} disabled={busy}>{busy ? t("generating") : t("generate_report")}</button>
         </div>
-        <textarea className="rinput" placeholder="Optioneel: context of focuspunten. Het rapport wordt uit de cijfers zelf opgebouwd."
+        <textarea className="rinput" placeholder={t("report_ctx_ph")}
           value={ctx} onChange={(e) => onCtx(e.target.value)} />
         <label className="chk">
           <input type="checkbox" checked={save} onChange={(e) => onSave(e.target.checked)} />
-          Input opslaan voor volgende rapporten
+          {L("Input opslaan voor volgende rapporten", "Save input for future reports")}
         </label>
         {report && (
           <div className="reportout">
             <div className="hrow" style={{ marginBottom: 8 }}>
-              <div className="h2">Rapport</div>
-              <button className="btn ghost" onClick={() => { try { navigator.clipboard.writeText(reportToText(report)); } catch {} }}>Kopieer</button>
+              <div className="h2">{t("report")}</div>
+              <button className="btn ghost" onClick={() => { try { navigator.clipboard.writeText(reportToText(report)); } catch {} }}>{t("copy")}</button>
             </div>
             <ReportView r={report} />
           </div>
@@ -308,17 +317,17 @@ export default function Insights({ data, period = "maand", compare = "prev" }) {
       <Card>
         <div className="hrow">
           <div>
-            <div className="h1 disp">Business insights</div>
-            <div className="h2">Het verhaal van de {plabel}</div>
+            <div className="h1 disp">{t("business_insights")}</div>
+            <div className="h2">{t("story_of")} {plabel}</div>
           </div>
-          <button className="btn ghost" onClick={copyReport}>Kopieer</button>
+          <button className="btn ghost" onClick={copyReport}>{t("copy")}</button>
         </div>
         <div className="inscards">
           {insights.map((it, i) => (
             <div className="inscard" key={i}>
               <div className="instop">
                 <div className="insico">{it.ic}</div>
-                <span className={"imp " + it.imp}>{it.imp === "hoog" ? "Hoge impact" : it.imp === "middel" ? "Middel" : "Laag"}</span>
+                <span className={"imp " + it.imp}>{it.imp === "hoog" ? t("high_impact") : it.imp === "middel" ? t("medium") : t("low")}</span>
                 <span className="insm mono">{it.m}</span>
               </div>
               <div className="inst">{it.t}</div>
