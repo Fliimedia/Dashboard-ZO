@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import * as echarts from "echarts";
 import Chart from "../components/Chart.jsx";
-import { useUI } from "../i18n.js";
+import { useUI, useT } from "../i18n.js";
 import { Card, Seg, fmtInt } from "../components/ui.jsx";
 import { AX, TT, SPLIT, COLORS } from "../echartsSetup.js";
 import { KEYWORDS, KEYWORDS_ESTIMATED, SUBREDDITS } from "../data.js";
@@ -41,6 +41,7 @@ const DEMO_POSTS = [
 
 export default function Trends() {
   const { theme } = useUI();
+  const t = useT();
   const [period, setPeriod] = useState("maand");
   const [kwSel, setKwSel] = useState(KEYWORDS[0].k);
   const [ksort, setKsort] = useState({ k: "v", dir: -1 });
@@ -99,11 +100,11 @@ export default function Trends() {
       <Card>
         <div className="hrow">
           <div>
-            <div className="h1 disp">Brand keywords</div>
-            <div className="h2">Klik een keyword voor het zoekvolume, 10 kernwoorden van het merk{KEYWORDS_ESTIMATED && <span className="demobadge" style={{ marginLeft: 8 }}>geschat</span>}</div>
+            <div className="h1 disp">{t("brand_keywords")}</div>
+            <div className="h2">{t("keywords_sub")}{KEYWORDS_ESTIMATED && <span className="demobadge" style={{ marginLeft: 8 }}>{t("estimate")}</span>}</div>
           </div>
           <Seg value={period} onChange={setPeriod} options={[
-            { value: "maand", label: "Maand" }, { value: "kwartaal", label: "Kwartaal" }, { value: "jaar", label: "Jaar" },
+            { value: "maand", label: t("month") }, { value: "kwartaal", label: t("quarter") }, { value: "jaar", label: t("year") },
           ]} />
         </div>
         <div className="r3" style={{ marginTop: 6 }}>
@@ -111,8 +112,8 @@ export default function Trends() {
           <div className="kwscroll">
             <table className="compact" style={{ width: "100%" }}>
               <thead><tr>
-                  <th>Keyword</th>
-                  {[["v","Volume p/m"],["c","Trend"]].map(([k,l]) => (
+                  <th>{t("keyword_col")}</th>
+                  {[["v",t("volume_pm")],["c",t("trend")]].map(([k,l]) => (
                     <th key={k} className={"num sortable" + (ksort.k === k ? " on" : "")} onClick={() => onKsort(k)}>
                       {l}{ksort.k === k ? (ksort.dir < 0 ? " \u2193" : " \u2191") : ""}
                     </th>
@@ -135,12 +136,12 @@ export default function Trends() {
       <Card>
         <div className="hrow">
           <div>
-            <div className="h1 disp">Reddit top posts</div>
-            <div className="h2">Top 10 van de periode uit de brand subreddits</div>
+            <div className="h1 disp">{t("reddit_title")}</div>
+            <div className="h2">{t("reddit_sub")}</div>
           </div>
           <Seg value={rt} onChange={setRt} options={[
             { value: "alltime", label: "All time" }, { value: "jaar", label: "Jaar" },
-            { value: "maand", label: "Maand" }, { value: "dag", label: "Dag" },
+            { value: "maand", label: t("month") }, { value: "dag", label: t("day") },
           ]} />
         </div>
         <div className="chips">
