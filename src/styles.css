@@ -480,3 +480,9 @@ th.sortable.on{color:var(--brand-ink)}
 .devtop span{font-family:'Space Grotesk';font-weight:600;font-size:12px;color:var(--ink)}
 .devitem .devpct{font-family:'Space Grotesk';font-weight:700;font-size:22px;margin-top:5px}
 .devitem .devcr{font-family:'IBM Plex Mono';font-size:9.5px;color:var(--mist);margin-top:2px}
+
+/* aurora dag-grafiek tooltip */
+.auroratip{position:absolute;top:6px;transform:translateX(-50%);background:var(--chart-tt);color:var(--chart-tt-ink);border-radius:var(--r-sm);padding:6px 9px;font-family:'IBM Plex Mono';font-size:10px;line-height:1.5;pointer-events:none;white-space:nowrap;display:flex;flex-direction:column;gap:1px;box-shadow:var(--shadow-sm);z-index:4}
+.auroratip .att-d{opacity:.7}
+.auroratip .att-v b{font-family:'Space Grotesk';font-weight:700}
+.auroratip .att-t{opacity:.6}
