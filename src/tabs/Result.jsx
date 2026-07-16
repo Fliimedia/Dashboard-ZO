@@ -300,7 +300,7 @@ function AISummary({ s, kpis, jumpTo, jumpMap, periodLabel }) {
     <Card>
       <button className={"aihead" + (open ? " open" : "")} onClick={() => setOpen((v) => !v)} aria-expanded={open}>
         <span className="h1 disp">AI Summary <span className="pill">{periodLabel}</span></span>
-        <svg className="aichev" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" /></svg>
+        <svg className="aichev" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9l6 6 6-6" /></svg>
       </button>
       {open && (
         <div className="oitems">
