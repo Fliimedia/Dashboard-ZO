@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Card } from "../components/ui.jsx";
-import { PERIOD_LABEL } from "../data.js";
+import { useUI, useT } from "../i18n.js";
 
 const KEY = "pos_action_state";
 
@@ -12,7 +12,10 @@ function saveState(s) {
 }
 
 export default function Action({ data, period = "maand" }) {
-  const plabel = PERIOD_LABEL[period] || "deze periode";
+  const { lang } = useUI();
+  const t = useT();
+  const L = (nl, en) => (lang === "en" ? en : nl);
+  const plabel = t("p_" + ({ jaar: "year", kwartaal: "quarter", maand: "month", week: "week" }[period] || "month"));
   const { kpis, dims } = data;
   const [state, setState] = useState(loadState);
   const [flt, setFlt] = useState("alle");
@@ -23,16 +26,16 @@ export default function Action({ data, period = "maand" }) {
     const topLp = [...dims.landingspaginas].sort((a, b) => b.c - a.c)[0];
     const topCa = [...dims.campagnes].sort((a, b) => b.c - a.c)[0];
     return [
-      { id: "engagement", prio: "middel", t: "Betrokkenheid " + (weakCh ? weakCh.n : "zwakste kanaal") + " verbeteren",
-        d: "Dit kanaal heeft de laagste betrokkenheid (" + (weakCh ? weakCh.e : 0) + "%). Verbeter de aansluiting tussen instroom en landingspagina, en test een specifiekere boodschap." },
-      { id: "landing", prio: "hoog", t: "Call to action versterken op " + (topLp ? topLp.n : "beste pagina"),
-        d: "Deze landingspagina converteert het best. Zet er de belangrijkste call to action prominenter neer en test varianten van de kop." },
-      { id: "campaign", prio: "hoog", t: "Best presterende campagne opschalen: " + (topCa ? topCa.n : "topcampagne"),
-        d: "Deze campagne levert de meeste conversies. Onderzoek een hoger budget of een tweede doelgroep met dezelfde boodschap." },
-      { id: "utm", prio: "laag", t: "UTM-tagging controleren op alle campagnes",
-        d: "Zorg dat elke campagne UTM-tags voert, zodat de campagne-tabel compleet en betrouwbaar blijft." },
-      { id: "target", prio: "middel", t: "Dagtarget verhogen zodra het twee weken wordt gehaald",
-        d: "Conversies staan op " + (kpis.cur.c || 0) + " in de periode. Verhoog het dagtarget pas als het huidige target twee weken op rij wordt gehaald." },
+      { id: "engagement", prio: "middel", t: L("Betrokkenheid " + (weakCh ? weakCh.n : "zwakste kanaal") + " verbeteren", "Improve engagement of " + (weakCh ? weakCh.n : "the weakest channel")),
+        d: L("Dit kanaal heeft de laagste betrokkenheid (" + (weakCh ? weakCh.e : 0) + "%). Verbeter de aansluiting tussen instroom en landingspagina, en test een specifiekere boodschap.", "This channel has the lowest engagement (" + (weakCh ? weakCh.e : 0) + "%). Improve the match between inflow and landing page, and test a more specific message.") },
+      { id: "landing", prio: "hoog", t: L("Call to action versterken op " + (topLp ? topLp.n : "beste pagina"), "Strengthen the call to action on " + (topLp ? topLp.n : "the best page")),
+        d: L("Deze landingspagina converteert het best. Zet er de belangrijkste call to action prominenter neer en test varianten van de kop.", "This landing page converts best. Make the main call to action more prominent and test headline variants.") },
+      { id: "campaign", prio: "hoog", t: L("Best presterende campagne opschalen: " + (topCa ? topCa.n : "topcampagne"), "Scale the best performing campaign: " + (topCa ? topCa.n : "top campaign")),
+        d: L("Deze campagne levert de meeste conversies. Onderzoek een hoger budget of een tweede doelgroep met dezelfde boodschap.", "This campaign delivers the most conversions. Consider a higher budget or a second audience with the same message.") },
+      { id: "utm", prio: "laag", t: L("UTM-tagging controleren op alle campagnes", "Check UTM tagging on all campaigns"),
+        d: L("Zorg dat elke campagne UTM-tags voert, zodat de campagne-tabel compleet en betrouwbaar blijft.", "Make sure every campaign carries UTM tags so the campaign table stays complete and reliable.") },
+      { id: "target", prio: "middel", t: L("Dagtarget verhogen zodra het twee weken wordt gehaald", "Raise the daily target once it is met for two weeks"),
+        d: L("Conversies staan op " + (kpis.cur.c || 0) + " in de periode. Verhoog het dagtarget pas als het huidige target twee weken op rij wordt gehaald.", "Conversions are at " + (kpis.cur.c || 0) + " in the period. Only raise the daily target once the current one is met two weeks in a row.") },
     ];
   }, [dims, kpis]);
 
@@ -58,11 +61,11 @@ export default function Action({ data, period = "maand" }) {
   return (
     <div className="view">
       <Card>
-        <div className="h1 disp">Vervolgacties</div>
-        <div className="h2">Uit de cijfers van de {plabel}, {open.length} open van {actions.length}</div>
+        <div className="h1 disp">{t("followups")}</div>
+        <div className="h2">{t("from_figures")} {plabel}, {open.length} {t("open_of")} {actions.length}</div>
         <div className="aprog"><i style={{ width: Math.round((done.length / actions.length) * 100) + "%" }} /></div>
         <div className="afilters">
-          {[["alle", "Alle"], ["open", "Open"], ["approved", "Goedgekeurd"], ["rejected", "Afgekeurd"]].map(([k, l]) => (
+          {[["alle", t("all")], ["open", t("open")], ["approved", t("approved")], ["rejected", t("rejected")]].map(([k, l]) => (
             <button key={k} className={"fchip" + (flt === k ? " on" : "")} onClick={() => setFlt(k)}>{l}</button>
           ))}
         </div>
@@ -74,17 +77,17 @@ export default function Action({ data, period = "maand" }) {
           return (
             <div className={"action" + (st.status ? " " + st.status : "")} key={a.id}>
               <div className="atop">
-                <span className={"prio " + a.prio}>{a.prio}</span>
+                <span className={"prio " + a.prio}>{a.prio === "hoog" ? t("priority_high") : a.prio === "middel" ? t("priority_mid") : t("priority_low")}</span>
                 <div className="atitle">{a.t}</div>
-                {st.status && <span className={"astatus " + st.status}>{st.status === "approved" ? "Goedgekeurd" : "Afgekeurd"}</span>}
+                {st.status && <span className={"astatus " + st.status}>{st.status === "approved" ? t("approved") : t("rejected")}</span>}
               </div>
               <div className="adesc">{a.d}</div>
               <div className="arow">
                 <button className={"abtn ok" + (st.status === "approved" ? " on" : "")} onClick={() => setStatus(a.id, "approved")}>
-                  <svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5" /></svg>Goedkeuren
+                  <svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5" /></svg>{t("approve")}
                 </button>
                 <button className={"abtn no" + (st.status === "rejected" ? " on" : "")} onClick={() => setStatus(a.id, "rejected")}>
-                  <svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12" /></svg>Afkeuren
+                  <svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12" /></svg>{t("reject")}
                 </button>
                 <div className="aspace" />
                 <button className={"vote" + (st.vote === "up" ? " up" : "")} onClick={() => setVote(a.id, "up")} aria-label="Duim omhoog">
@@ -99,7 +102,7 @@ export default function Action({ data, period = "maand" }) {
         })}
         {done.length > 0 && (
           <div className="maphint" style={{ marginTop: 10 }}>
-            {done.length} behandeld. Klik dezelfde knop opnieuw om terug te zetten naar open.
+            {done.length} {L("behandeld. Klik dezelfde knop opnieuw om terug te zetten naar open.", "handled. Click the same button again to reset to open.")}
           </div>
         )}
       </Card>
