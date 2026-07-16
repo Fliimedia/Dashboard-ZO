@@ -107,14 +107,17 @@ export default function AuroraChart({
       const lg = ctx.createLinearGradient(padL, 0, W - padR, 0);
       values.forEach((v, i) => {
         const f = (v - mn) / range; // 0 laag .. 1 hoog
-        const c = { r: Math.round(cool.r + (brand2.r - cool.r) * f),
-                    g: Math.round(cool.g + (brand2.g - cool.g) * f),
-                    b: Math.round(cool.b + (brand2.b - cool.b) * f) };
+        const hi = { r: Math.round(brand.r * 0.55 + brand2.r * 0.45),
+                     g: Math.round(brand.g * 0.55 + brand2.g * 0.45),
+                     b: Math.round(brand.b * 0.55 + brand2.b * 0.45) };
+        const c = { r: Math.round(cool.r + (hi.r - cool.r) * f),
+                    g: Math.round(cool.g + (hi.g - cool.g) * f),
+                    b: Math.round(cool.b + (hi.b - cool.b) * f) };
         lg.addColorStop(i / (values.length - 1), rgba(c, 1));
       });
       ctx.beginPath(); tracePath(pts);
-      ctx.strokeStyle = lg; ctx.lineWidth = 3; ctx.lineJoin = "round"; ctx.lineCap = "round";
-      ctx.shadowColor = rgba(brand, 0.85); ctx.shadowBlur = 16;
+      ctx.strokeStyle = lg; ctx.lineWidth = 2.25; ctx.lineJoin = "round"; ctx.lineCap = "round";
+      ctx.shadowColor = rgba(brand, 0.6); ctx.shadowBlur = 12;
       ctx.stroke();
       ctx.shadowBlur = 0;
       ctx.restore();
