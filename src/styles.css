@@ -7,7 +7,7 @@
   --flii:#E6007E;             /* alias voor het merkje */
 
   --paper:#F4F3F6; --paper2:#EFEBF4; --paper3:#F6EDF3;
-  --card:rgba(255,255,255,.86); --inset:#F4F2F7; --surface:#FFFFFF;
+  --card:rgba(255,255,255,.86); --inset:#F4F2F7; --surface:#FFFFFF; --glass:rgba(255,255,255,.92);
   --chart-axis:#E6E3EC; --chart-label:#6E6879; --chart-split:rgba(20,16,25,.07);
   --chart-tt:#141019; --chart-tt-ink:#FFFFFF; --chart-surface:#FFFFFF;
   --chart-area:rgba(20,16,25,.05); --chart-border:rgba(20,16,25,.16);
@@ -33,7 +33,7 @@
   --brand-wash:rgba(255,61,158,.16); --brand-wash2:rgba(255,61,158,.26);
 
   --paper:#0E0B12; --paper2:#120E17; --paper3:#0C0910;
-  --card:rgba(28,22,34,.72); --inset:#1B1622; --surface:#211B29;
+  --card:rgba(28,22,34,.72); --inset:#1B1622; --surface:#211B29; --glass:rgba(26,20,34,.86);
   --chart-axis:#2A2333; --chart-label:#A79FB2; --chart-split:rgba(255,255,255,.06);
   --chart-tt:#241D2E; --chart-tt-ink:#F3EFF6; --chart-surface:#211B29;
   --chart-area:rgba(255,255,255,.06); --chart-border:rgba(255,255,255,.16);
@@ -190,7 +190,7 @@ table:not(.compact) th:first-child,table:not(.compact) td:first-child{position:s
   .card{padding:12px 13px}
   .demrow{flex-wrap:wrap}
   .bottomnav{display:flex;position:fixed;left:10px;right:10px;bottom:10px;z-index:40;
-    background:rgba(255,255,255,.92);backdrop-filter:blur(14px);border:1px solid var(--stroke);
+    background:var(--glass);backdrop-filter:blur(14px);border:1px solid var(--stroke);
     border-radius:16px;padding:7px;justify-content:space-around;box-shadow:var(--shadow)}
   .bni{display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 4px;border-radius:11px;color:var(--dim);flex:1;min-width:0;cursor:pointer}
   .bni svg{width:17px;height:17px;stroke:currentColor;fill:none;stroke-width:2}
@@ -486,3 +486,10 @@ th.sortable.on{color:var(--brand-ink)}
 .auroratip .att-d{opacity:.7}
 .auroratip .att-v b{font-family:'Space Grotesk';font-weight:700}
 .auroratip .att-t{opacity:.6}
+
+/* inklapbare AI summary kop */
+.aihead{width:100%;display:flex;align-items:center;justify-content:space-between;gap:10px;background:none;border:none;padding:0;cursor:pointer;color:var(--ink);text-align:left}
+.aihead .h1{margin:0}
+.aichev{width:20px;height:20px;stroke:var(--mist);fill:none;stroke-width:2;stroke-linejoin:round;stroke-linecap:round;transition:transform .2s ease;flex:none}
+.aihead.open .aichev{transform:rotate(180deg)}
+.aihead:hover .aichev{stroke:var(--brand-ink)}
