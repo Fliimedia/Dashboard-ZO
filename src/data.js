@@ -342,11 +342,8 @@ export const FORCE_DEMO = true;
 
 // Merk van de klant voor de brandbalk. logo:null gebruikt de wordmark van de initialen.
 export const BRAND = {
-  name: "Flii Media",
-  site: "flii.nl",
-  logo: "/flii-logo.svg",
-  tagline: "Performance media voor merken",
-  description: "Strategie, beheer en optimalisatie van performance media",
+  logo: null,               // uithangbord: geen vast logo, wordmark uit de merknaam
+  i18n: true,               // naam, tagline, site en beschrijving komen uit het woordenboek
 };
 
 export function wordmark(name) {
