@@ -248,6 +248,7 @@ function DemografieCard({ demografie }) {
 
 function AISummary({ s, kpis, jumpTo, jumpMap, periodLabel }) {
   const t = useT();
+  const [open, setOpen] = useState(false);
   const I = {
     star: <svg viewBox="0 0 24 24"><path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9 6.8 19l1-5.8L3.5 9.2l5.9-.9z" /></svg>,
     up: <svg viewBox="0 0 24 24"><path d="M3 17l6-6 4 4 7-7" /><path d="M17 8h4v4" /></svg>,
@@ -297,15 +298,20 @@ function AISummary({ s, kpis, jumpTo, jumpMap, periodLabel }) {
 
   return (
     <Card>
-      <div className="h1 disp">AI Summary <span className="pill">{periodLabel}</span></div>
-      <div className="oitems">
-        {items.map((it, i) => (
-          <div className={"oitem" + (it.go ? "" : " nolink")} key={i} onClick={it.go}>
-            <div className="oic">{it.ic}</div>
-            <div className="otext">{it.text}</div>
-          </div>
-        ))}
-      </div>
+      <button className={"aihead" + (open ? " open" : "")} onClick={() => setOpen((v) => !v)} aria-expanded={open}>
+        <span className="h1 disp">AI Summary <span className="pill">{periodLabel}</span></span>
+        <svg className="aichev" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" /></svg>
+      </button>
+      {open && (
+        <div className="oitems">
+          {items.map((it, i) => (
+            <div className={"oitem" + (it.go ? "" : " nolink")} key={i} onClick={it.go}>
+              <div className="oic">{it.ic}</div>
+              <div className="otext">{it.text}</div>
+            </div>
+          ))}
+        </div>
+      )}
     </Card>
   );
 }
