@@ -51,11 +51,15 @@ export default async function handler(req, res) {
     return;
   }
 
+  // Met het geheim (fckl.app, server naar server) mag elke toegestane property.
+  // Zonder geheim (dit dashboard in de browser) alleen de eigen property's uit
+  // GA_PUBLIC_PROPERTIES, zodat de proxy niet open staat voor andere property's.
   const secret = process.env.PROXY_SECRET;
-  if (secret && req.headers["x-proxy-secret"] !== secret) {
-    res.status(401).json({ error: "Geen toegang" });
-    return;
-  }
+  const trusted = Boolean(secret) && req.headers["x-proxy-secret"] === secret;
+  const publicList = (process.env.GA_PUBLIC_PROPERTIES || "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
 
   try {
     const body =
@@ -67,6 +71,10 @@ export default async function handler(req, res) {
 
     if (!propertyId) {
       res.status(400).json({ error: "propertyId ontbreekt" });
+      return;
+    }
+    if (secret && !trusted && !publicList.includes(propertyId)) {
+      res.status(401).json({ error: "Geen toegang" });
       return;
     }
     if (!allowedProperty(propertyId)) {
